@@ -1005,13 +1005,7 @@ a {
 }
 
 .week-picker__formatted {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.85rem;
-  color: var(--grey);
-  pointer-events: none;
+  display: none;
 }
 
 /* === Day Row === */
