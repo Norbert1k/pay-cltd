@@ -18,7 +18,7 @@ const defaultDayData = () => ({
 });
 
 export default function SubmitTimesheet() {
-  const { profile, loading: authLoading } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
 
   const [weekEnding, setWeekEnding] = useState(getNextSunday());
@@ -40,12 +40,12 @@ export default function SubmitTimesheet() {
   const [cisRate, setCisRate] = useState(20);
 
   useEffect(() => {
-    if (!authLoading) fetchSites();
-  }, [authLoading]);
+    fetchSites();
+  }, []);
 
   useEffect(() => {
-    if (profile && !authLoading) checkExisting();
-  }, [weekEnding, profile, authLoading]);
+    if (profile) checkExisting();
+  }, [weekEnding, profile]);
 
   // Auto-save draft to localStorage
   useEffect(() => {
@@ -70,13 +70,19 @@ export default function SubmitTimesheet() {
   }, []);
 
   const fetchSites = async () => {
-    const { data } = await supabase
-      .from('sites')
-      .select('*')
-      .eq('status', 'active')
-      .order('site_name');
-    setSites(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('sites')
+        .select('*')
+        .eq('status', 'active')
+        .order('site_name');
+      if (error) console.error('Sites fetch error:', error);
+      setSites(data || []);
+    } catch (err) {
+      console.error('Sites fetch exception:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const checkExisting = async () => {
