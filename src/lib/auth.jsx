@@ -9,29 +9,51 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    setProfile(data);
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Profile fetch error:', error);
+      }
+      setProfile(data);
+      return data;
+    } catch (err) {
+      console.error('Profile fetch exception:', err);
+      setProfile(null);
+      return null;
+    }
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          await fetchProfile(currentUser.id);
+        }
+      } catch (err) {
+        console.error('Session init error:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
+
+    init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          await fetchProfile(currentUser.id);
         } else {
           setProfile(null);
         }

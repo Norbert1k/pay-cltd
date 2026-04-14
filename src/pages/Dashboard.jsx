@@ -14,31 +14,39 @@ export default function Dashboard() {
   const weekEnding = getNextSunday();
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile) {
+      setLoading(false);
+      return;
+    }
     fetchData();
   }, [profile]);
 
   const fetchData = async () => {
-    // Check current week
-    const { data: currentWeek } = await supabase
-      .from('timesheets')
-      .select('*, sites(site_name)')
-      .eq('worker_id', profile.id)
-      .eq('week_ending', weekEnding)
-      .single();
+    try {
+      // Check current week
+      const { data: currentWeek } = await supabase
+        .from('timesheets')
+        .select('*, sites(site_name)')
+        .eq('worker_id', profile.id)
+        .eq('week_ending', weekEnding)
+        .maybeSingle();
 
-    setCurrentWeekSubmitted(currentWeek);
+      setCurrentWeekSubmitted(currentWeek);
 
-    // Recent timesheets
-    const { data: recent } = await supabase
-      .from('timesheets')
-      .select('*, sites(site_name)')
-      .eq('worker_id', profile.id)
-      .order('week_ending', { ascending: false })
-      .limit(5);
+      // Recent timesheets
+      const { data: recent } = await supabase
+        .from('timesheets')
+        .select('*, sites(site_name)')
+        .eq('worker_id', profile.id)
+        .order('week_ending', { ascending: false })
+        .limit(5);
 
-    setRecentTimesheets(recent || []);
-    setLoading(false);
+      setRecentTimesheets(recent || []);
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) return <LoadingSpinner />;
