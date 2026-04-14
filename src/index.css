@@ -1138,6 +1138,13 @@ a {
   font-size: 0.95rem;
 }
 
+.summary-row--cis {
+  background: #fef3c7;
+  margin: 0 -20px;
+  padding: 8px 20px;
+  border-radius: var(--radius);
+}
+
 .summary-row--total {
   border-top: 2px solid var(--green);
   padding-top: 10px;
@@ -1147,6 +1154,66 @@ a {
 
 .summary-row--total strong {
   color: var(--green);
+}
+
+/* === CIS Toggle === */
+.cis-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--grey-200);
+  flex-wrap: wrap;
+}
+
+.cis-toggle__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.cis-toggle__checkbox {
+  display: none;
+}
+
+.cis-toggle__switch {
+  width: 44px;
+  height: 24px;
+  background: var(--grey-300);
+  border-radius: 12px;
+  position: relative;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.cis-toggle__switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: var(--white);
+  border-radius: 50%;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.cis-toggle__checkbox:checked + .cis-toggle__switch {
+  background: var(--green);
+}
+
+.cis-toggle__checkbox:checked + .cis-toggle__switch::after {
+  transform: translateX(20px);
+}
+
+.cis-toggle__rate {
+  flex-shrink: 0;
 }
 
 /* === Payment Cards === */
