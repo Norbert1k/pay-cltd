@@ -20,10 +20,11 @@ export default function AdminTimesheets() {
   }, []);
 
   const fetchTimesheets = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('timesheets')
-      .select('*, profiles(id, full_name, trade, email, national_insurance, utr_number, sort_code, account_number, phone), sites(id, site_name, site_address, city, postcode)')
+      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, national_insurance, utr_number, sort_code, account_number, phone), sites(id, site_name, site_address, city, postcode)')
       .order('submitted_at', { ascending: false });
+    if (error) console.error('Fetch timesheets error:', error);
     setTimesheets(data || []);
     setLoading(false);
   };
