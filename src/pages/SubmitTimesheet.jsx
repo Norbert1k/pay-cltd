@@ -36,6 +36,8 @@ export default function SubmitTimesheet() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [existingTimesheet, setExistingTimesheet] = useState(null);
+  const [cisEnabled, setCisEnabled] = useState(false);
+  const [cisRate, setCisRate] = useState(20);
 
   useEffect(() => {
     fetchSites();
@@ -92,7 +94,9 @@ export default function SubmitTimesheet() {
   };
 
   const totalGross = DAYS.reduce((sum, d) => sum + (parseFloat(days[d].gross_amount) || 0), 0);
-  const totalDeductions = DAYS.reduce((sum, d) => sum + (parseFloat(days[d].deductions) || 0), 0);
+  const totalManualDeductions = DAYS.reduce((sum, d) => sum + (parseFloat(days[d].deductions) || 0), 0);
+  const cisDeduction = cisEnabled ? (totalGross * cisRate / 100) : 0;
+  const totalDeductions = totalManualDeductions + cisDeduction;
   const totalNet = totalGross - totalDeductions;
 
   const handleSubmit = async (e) => {
@@ -118,6 +122,7 @@ export default function SubmitTimesheet() {
         approving_manager: approvingManager,
         payment_method: paymentMethod,
         total_amount: totalNet,
+        cis_rate: cisEnabled ? cisRate : null,
       })
       .select()
       .single();
@@ -240,14 +245,50 @@ export default function SubmitTimesheet() {
         {/* Step 3: Summary */}
         <div className="form-section">
           <h3 className="form-section__title">Summary</h3>
+
+          {/* CIS Toggle */}
+          <div className="cis-toggle">
+            <label className="cis-toggle__label">
+              <input
+                type="checkbox"
+                checked={cisEnabled}
+                onChange={(e) => setCisEnabled(e.target.checked)}
+                className="cis-toggle__checkbox"
+              />
+              <span className="cis-toggle__switch" />
+              <span>Apply CIS Deduction</span>
+            </label>
+            {cisEnabled && (
+              <div className="cis-toggle__rate">
+                <select
+                  value={cisRate}
+                  onChange={(e) => setCisRate(Number(e.target.value))}
+                  className="form-input form-input--sm"
+                >
+                  <option value={20}>20% (Standard)</option>
+                  <option value={30}>30% (Higher)</option>
+                  <option value={0}>0% (Gross Payment)</option>
+                </select>
+              </div>
+            )}
+          </div>
+
           <div className="summary-row">
             <span>Total Gross</span>
             <strong>{formatCurrency(totalGross)}</strong>
           </div>
-          <div className="summary-row">
-            <span>Total Deductions</span>
-            <strong className="text-red">&minus;{formatCurrency(totalDeductions)}</strong>
-          </div>
+          {totalManualDeductions > 0 && (
+            <div className="summary-row">
+              <span>Other Deductions</span>
+              <strong className="text-red">&minus;{formatCurrency(totalManualDeductions)}</strong>
+            </div>
+          )}
+          {cisEnabled && cisDeduction > 0 && (
+            <div className="summary-row summary-row--cis">
+              <span>CIS Deduction ({cisRate}%)</span>
+              <strong className="text-red">&minus;{formatCurrency(cisDeduction)}</strong>
+            </div>
+          )}
           <div className="summary-row summary-row--total">
             <span>Total Net</span>
             <strong>{formatCurrency(totalNet)}</strong>
