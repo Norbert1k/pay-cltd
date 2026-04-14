@@ -132,14 +132,31 @@ export function generateTimesheetPDF(timesheet, profile, site, days) {
     },
   });
 
-  // Total
+  // CIS Deduction (if applicable)
   y = doc.lastAutoTable.finalY + 5;
+
+  if (timesheet.cis_rate && timesheet.cis_rate > 0) {
+    // Calculate gross from days
+    const grossTotal = (days || []).reduce((sum, d) => sum + parseFloat(d.gross_amount || 0), 0);
+    const cisAmount = grossTotal * timesheet.cis_rate / 100;
+
+    doc.setFillColor(254, 243, 199);
+    doc.rect(margin, y, pageWidth - margin * 2, 10, 'F');
+    doc.setTextColor(146, 64, 14);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`CIS DEDUCTION (${timesheet.cis_rate}%):`, margin + 5, y + 7);
+    doc.text(`-${formatCurrency(cisAmount)}`, pageWidth - margin - 5, y + 7, { align: 'right' });
+    y += 12;
+  }
+
+  // Total
   doc.setFillColor(68, 138, 64);
   doc.rect(margin, y, pageWidth - margin * 2, 12, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL:', margin + 5, y + 8);
+  doc.text('TOTAL NET:', margin + 5, y + 8);
   doc.text(formatCurrency(timesheet.total_amount), pageWidth - margin - 5, y + 8, { align: 'right' });
 
   // Footer
