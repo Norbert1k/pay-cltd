@@ -48,7 +48,7 @@ export default function AdminDashboard() {
     // Recent 10 timesheets
     const { data: recentData } = await supabase
       .from('timesheets')
-      .select('*, profiles(full_name, trade), sites(site_name)')
+      .select('*, profiles!timesheets_worker_id_fkey(full_name, trade), sites(site_name)')
       .order('submitted_at', { ascending: false })
       .limit(10);
     setRecent(recentData || []);
