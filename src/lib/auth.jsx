@@ -3,31 +3,35 @@ import { supabase } from './supabase';
 
 const AuthContext = createContext({});
 
-// Helper: race a promise against a timeout
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout')), ms)
-    ),
-  ]);
+// Read cached session from localStorage instantly (no network call)
+function getCachedSession() {
+  try {
+    const stored = localStorage.getItem('sb-wxzmpbftzeasivveohly-auth-token');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed?.user || null;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null;
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  // Initialize from cache immediately — no loading spinner needed
+  const cachedUser = getCachedSession();
+  const [user, setUser] = useState(cachedUser);
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedUser ? true : false);
+  const [profileLoading, setProfileLoading] = useState(!!cachedUser);
 
   const fetchProfile = async (userId) => {
     try {
-      const { data, error } = await withTimeout(
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle(),
-        5000
-      );
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
       if (error) console.error('Profile fetch error:', error);
       setProfile(data || null);
       return data;
@@ -43,35 +47,45 @@ export function AuthProvider({ children }) {
 
     const init = async () => {
       try {
-        const { data: { session } } = await withTimeout(
-          supabase.auth.getSession(),
-          5000
-        );
+        // If we have a cached user, fetch profile immediately
+        if (cachedUser) {
+          await fetchProfile(cachedUser.id);
+          if (mounted) setProfileLoading(false);
+        }
+
+        // Then verify session with Supabase (background)
+        const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
 
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        if (currentUser) {
+        if (currentUser && currentUser.id !== cachedUser?.id) {
+          // User changed, re-fetch profile
           await fetchProfile(currentUser.id);
+        } else if (!currentUser) {
+          // Session expired
+          setProfile(null);
         }
       } catch (err) {
         console.error('Auth init failed:', err.message);
-        if (!mounted) return;
-        // If session fetch times out, clear any stale tokens
-        setUser(null);
-        setProfile(null);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setProfileLoading(false);
+        }
       }
     };
 
     init();
 
-    // Safety net: if loading is still true after 6 seconds, force it off
+    // Safety net
     const safetyTimer = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 6000);
+      if (mounted) {
+        setLoading(false);
+        setProfileLoading(false);
+      }
+    }, 4000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -84,7 +98,8 @@ export function AuthProvider({ children }) {
         } else {
           setProfile(null);
         }
-        if (mounted) setLoading(false);
+        setLoading(false);
+        setProfileLoading(false);
       }
     );
 
@@ -105,6 +120,7 @@ export function AuthProvider({ children }) {
     user,
     profile,
     loading,
+    profileLoading,
     signOut,
     fetchProfile,
     isAdmin: profile?.role === 'admin',
