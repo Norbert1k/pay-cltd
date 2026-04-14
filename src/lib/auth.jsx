@@ -3,6 +3,16 @@ import { supabase } from './supabase';
 
 const AuthContext = createContext({});
 
+// Helper: race a promise against a timeout
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout')), ms)
+    ),
+  ]);
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -10,28 +20,35 @@ export function AuthProvider({ children }) {
 
   const fetchProfile = async (userId) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Profile fetch error:', error);
-      }
-      setProfile(data);
+      const { data, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle(),
+        5000
+      );
+      if (error) console.error('Profile fetch error:', error);
+      setProfile(data || null);
       return data;
     } catch (err) {
-      console.error('Profile fetch exception:', err);
+      console.error('Profile fetch failed:', err.message);
       setProfile(null);
       return null;
     }
   };
 
   useEffect(() => {
+    let mounted = true;
+
     const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          5000
+        );
+        if (!mounted) return;
+
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
@@ -39,16 +56,26 @@ export function AuthProvider({ children }) {
           await fetchProfile(currentUser.id);
         }
       } catch (err) {
-        console.error('Session init error:', err);
+        console.error('Auth init failed:', err.message);
+        if (!mounted) return;
+        // If session fetch times out, clear any stale tokens
+        setUser(null);
+        setProfile(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     init();
 
+    // Safety net: if loading is still true after 6 seconds, force it off
+    const safetyTimer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 6000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!mounted) return;
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
@@ -57,11 +84,15 @@ export function AuthProvider({ children }) {
         } else {
           setProfile(null);
         }
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
