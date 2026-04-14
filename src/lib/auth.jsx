@@ -1,42 +1,37 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from './supabase';
 
 const AuthContext = createContext({});
 
-// Read cached session from localStorage instantly (no network call)
-function getCachedSession() {
-  try {
-    const stored = localStorage.getItem('sb-wxzmpbftzeasivveohly-auth-token');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed?.user || null;
-    }
-  } catch (e) {
-    // ignore
-  }
-  return null;
-}
-
 export function AuthProvider({ children }) {
-  // Initialize from cache immediately — no loading spinner needed
-  const cachedUser = getCachedSession();
-  const [user, setUser] = useState(cachedUser);
+  const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(!cachedUser ? true : false);
-  const [profileLoading, setProfileLoading] = useState(!!cachedUser);
+  const [loading, setLoading] = useState(true);
+  const [debugLog, setDebugLog] = useState([]);
+  const initDone = useRef(false);
+
+  const log = (msg) => {
+    console.log('[AUTH]', msg);
+    setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
+  };
 
   const fetchProfile = async (userId) => {
+    log('Fetching profile for ' + userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-      if (error) console.error('Profile fetch error:', error);
+      if (error) {
+        log('Profile error: ' + JSON.stringify(error));
+        return null;
+      }
+      log('Profile loaded: ' + (data?.full_name || 'null'));
       setProfile(data || null);
       return data;
     } catch (err) {
-      console.error('Profile fetch failed:', err.message);
+      log('Profile exception: ' + err.message);
       setProfile(null);
       return null;
     }
@@ -46,50 +41,54 @@ export function AuthProvider({ children }) {
     let mounted = true;
 
     const init = async () => {
+      log('Init started');
       try {
-        // If we have a cached user, fetch profile immediately
-        if (cachedUser) {
-          await fetchProfile(cachedUser.id);
-          if (mounted) setProfileLoading(false);
-        }
-
-        // Then verify session with Supabase (background)
-        const { data: { session } } = await supabase.auth.getSession();
+        log('Calling getSession...');
+        const { data: { session }, error } = await supabase.auth.getSession();
         if (!mounted) return;
 
+        if (error) {
+          log('getSession error: ' + JSON.stringify(error));
+        }
+
         const currentUser = session?.user ?? null;
+        log('Session user: ' + (currentUser?.email || 'none'));
         setUser(currentUser);
 
-        if (currentUser && currentUser.id !== cachedUser?.id) {
-          // User changed, re-fetch profile
+        if (currentUser) {
           await fetchProfile(currentUser.id);
-        } else if (!currentUser) {
-          // Session expired
-          setProfile(null);
+        } else {
+          log('No user in session');
         }
       } catch (err) {
-        console.error('Auth init failed:', err.message);
+        log('Init exception: ' + err.message);
       } finally {
         if (mounted) {
+          log('Init complete, setting loading=false');
           setLoading(false);
-          setProfileLoading(false);
+          initDone.current = true;
         }
       }
     };
 
     init();
 
-    // Safety net
     const safetyTimer = setTimeout(() => {
-      if (mounted) {
+      if (mounted && !initDone.current) {
+        log('SAFETY TIMEOUT - forcing loading=false');
         setLoading(false);
-        setProfileLoading(false);
       }
-    }, 4000);
+    }, 3000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (!mounted) return;
+        if (event === 'INITIAL_SESSION') {
+          log('onAuthStateChange: INITIAL_SESSION (skipping)');
+          return;
+        }
+        log('onAuthStateChange: ' + event);
+
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
@@ -99,7 +98,6 @@ export function AuthProvider({ children }) {
           setProfile(null);
         }
         setLoading(false);
-        setProfileLoading(false);
       }
     );
 
@@ -120,7 +118,7 @@ export function AuthProvider({ children }) {
     user,
     profile,
     loading,
-    profileLoading,
+    debugLog,
     signOut,
     fetchProfile,
     isAdmin: profile?.role === 'admin',
