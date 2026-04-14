@@ -17,16 +17,8 @@ import AdminWorkerDetail from './pages/AdminWorkerDetail';
 import AdminSites from './pages/AdminSites';
 
 function ProtectedRoute() {
-  const { user, loading, debugLog } = useAuth();
-  if (loading) return (
-    <div style={{padding: 20}}>
-      <LoadingSpinner />
-      <div style={{marginTop: 20, fontFamily: 'monospace', fontSize: 12, color: '#666'}}>
-        <strong>Auth Debug:</strong>
-        {debugLog.map((msg, i) => <div key={i}>{msg}</div>)}
-      </div>
-    </div>
-  );
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
   if (!user) return <Navigate to="/login" replace />;
   return <AppLayout />;
 }
