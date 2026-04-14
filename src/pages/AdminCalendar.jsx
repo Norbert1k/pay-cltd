@@ -24,7 +24,7 @@ export default function AdminCalendar() {
 
     const { data } = await supabase
       .from('timesheets')
-      .select('*, profiles(full_name), sites(site_name)')
+      .select('*, profiles!timesheets_worker_id_fkey(full_name), sites(site_name)')
       .gte('week_ending', startDate.toISOString().split('T')[0])
       .lte('week_ending', endDate.toISOString().split('T')[0]);
 
