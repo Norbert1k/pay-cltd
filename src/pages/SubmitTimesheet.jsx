@@ -18,7 +18,7 @@ const defaultDayData = () => ({
 });
 
 export default function SubmitTimesheet() {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [weekEnding, setWeekEnding] = useState(getNextSunday());
@@ -40,12 +40,12 @@ export default function SubmitTimesheet() {
   const [cisRate, setCisRate] = useState(20);
 
   useEffect(() => {
-    fetchSites();
-  }, []);
+    if (!authLoading) fetchSites();
+  }, [authLoading]);
 
   useEffect(() => {
-    if (profile) checkExisting();
-  }, [weekEnding, profile]);
+    if (profile && !authLoading) checkExisting();
+  }, [weekEnding, profile, authLoading]);
 
   // Auto-save draft to localStorage
   useEffect(() => {
