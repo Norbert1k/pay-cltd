@@ -85,7 +85,7 @@ export default function SubmitTimesheet() {
       .select('*, sites(site_name)')
       .eq('worker_id', profile.id)
       .eq('week_ending', weekEnding)
-      .single();
+      .maybeSingle();
     setExistingTimesheet(data);
   };
 

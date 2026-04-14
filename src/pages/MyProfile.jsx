@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { PageHeader, LoadingSpinner } from '../components/ui';
 
 export default function MyProfile() {
-  const { profile, fetchProfile } = useAuth();
+  const { profile, profileLoading, fetchProfile } = useAuth();
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -54,7 +54,16 @@ export default function MyProfile() {
     setSaving(false);
   };
 
-  if (!profile) return <LoadingSpinner />;
+  if (profileLoading) return <LoadingSpinner />;
+
+  if (!profile) return (
+    <div className="page">
+      <PageHeader title="My Profile" subtitle="Loading your profile..." />
+      <div className="alert alert--warning">
+        <div><strong>Profile not loaded</strong><p>Please try refreshing the page.</p></div>
+      </div>
+    </div>
+  );
 
   const paymentComplete = form.sort_code && form.account_number && form.national_insurance && form.utr_number;
 

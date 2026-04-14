@@ -30,7 +30,7 @@ export default function AdminWorkers() {
           .eq('worker_id', w.id)
           .order('week_ending', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         return { ...w, lastSubmission: lastTs?.week_ending };
       }));
       setWorkers(enriched);

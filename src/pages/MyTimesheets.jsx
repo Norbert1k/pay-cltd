@@ -15,7 +15,11 @@ export default function MyTimesheets() {
   const [justSubmitted, setJustSubmitted] = useState(location.state?.submitted);
 
   useEffect(() => {
-    if (profile) fetchTimesheets();
+    if (profile) {
+      fetchTimesheets();
+    } else {
+      setLoading(false);
+    }
   }, [profile]);
 
   useEffect(() => {
@@ -45,7 +49,7 @@ export default function MyTimesheets() {
       .from('sites')
       .select('*')
       .eq('id', ts.site_id)
-      .single();
+      .maybeSingle();
 
     generateTimesheetPDF(ts, profile, site, days || []);
   };

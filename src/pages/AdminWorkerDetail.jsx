@@ -21,7 +21,7 @@ export default function AdminWorkerDetail() {
       .from('profiles')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     setWorker(w);
 
     const { data: ts } = await supabase
