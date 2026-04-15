@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { supabase } from '../lib/supabase';
 
 // SVG Icons as components
 const IconDashboard = () => (
@@ -65,18 +67,62 @@ const IconLogout = () => (
 export default function Sidebar({ open, onClose }) {
   const { isAdmin, profile, signOut } = useAuth();
   const location = useLocation();
+  const [badges, setBadges] = useState({ alerts: 0, pendingUsers: 0, queriedTimesheets: 0 });
+
+  // Fetch notification counts
+  useEffect(() => {
+    if (!profile) return;
+    fetchBadges();
+    // Refresh badges every 30 seconds
+    const interval = setInterval(fetchBadges, 30000);
+    return () => clearInterval(interval);
+  }, [profile]);
+
+  const fetchBadges = async () => {
+    if (!profile) return;
+
+    // Worker: unread alerts
+    const { count: alertCount } = await supabase
+      .from('alerts')
+      .select('*', { count: 'exact', head: true })
+      .eq('worker_id', profile.id)
+      .eq('read', false);
+
+    // Worker: queried timesheets
+    const { count: queriedCount } = await supabase
+      .from('timesheets')
+      .select('*', { count: 'exact', head: true })
+      .eq('worker_id', profile.id)
+      .eq('status', 'queried');
+
+    let pendingCount = 0;
+    if (['admin', 'accountant', 'director'].includes(profile.role)) {
+      // Admin: pending user approvals
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('approval_status', 'pending');
+      pendingCount = count || 0;
+    }
+
+    setBadges({
+      alerts: (alertCount || 0) + (queriedCount || 0),
+      pendingUsers: pendingCount,
+      queriedTimesheets: queriedCount || 0,
+    });
+  };
 
   const workerLinks = [
-    { to: '/dashboard', label: 'Dashboard', icon: <IconDashboard /> },
+    { to: '/dashboard', label: 'Dashboard', icon: <IconDashboard />, badge: badges.alerts },
     { to: '/submit', label: 'Submit Timesheet', icon: <IconSubmit /> },
-    { to: '/timesheets', label: 'My Timesheets', icon: <IconHistory /> },
+    { to: '/timesheets', label: 'My Timesheets', icon: <IconHistory />, badge: badges.queriedTimesheets },
     { to: '/profile', label: 'My Profile', icon: <IconProfile /> },
   ];
 
   const adminLinks = [
     { to: '/admin', label: 'Dashboard', icon: <IconDashboard /> },
     { to: '/admin/timesheets', label: 'All Timesheets', icon: <IconTimesheets /> },
-    { to: '/admin/workers', label: 'User Management', icon: <IconWorkers /> },
+    { to: '/admin/workers', label: 'User Management', icon: <IconWorkers />, badge: badges.pendingUsers },
     { to: '/admin/sites', label: 'Sites', icon: <IconSites /> },
     { to: '/admin/payments', label: 'Payment Dates', icon: <IconCalendar /> },
     { to: '/admin/calendar', label: 'Calendar', icon: <IconCalendar /> },
@@ -111,6 +157,9 @@ export default function Sidebar({ open, onClose }) {
             >
               {link.icon}
               <span>{link.label}</span>
+              {link.badge > 0 && (
+                <span className="sidebar__badge">{link.badge}</span>
+              )}
             </NavLink>
           ))}
 
@@ -129,6 +178,9 @@ export default function Sidebar({ open, onClose }) {
                 >
                   {link.icon}
                   <span>{link.label}</span>
+                  {link.badge > 0 && (
+                    <span className="sidebar__badge">{link.badge}</span>
+                  )}
                 </NavLink>
               ))}
             </>
