@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { formatDate, formatCurrency } from '../lib/utils';
-import { PageHeader, StatusPill, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
+import { formatDate, formatCurrency, STATUSES, STATUS_LABELS } from '../lib/utils';
+import { PageHeader, ApprovalPipeline, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 
 export default function MyTimesheets() {
@@ -54,6 +54,21 @@ export default function MyTimesheets() {
     generateTimesheetPDF(ts, profile, site, days || []);
   };
 
+  // Build month options from timesheets
+  const monthOptions = useMemo(() => {
+    const months = new Set();
+    timesheets.forEach(ts => {
+      const d = new Date(ts.week_ending + 'T00:00:00');
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.add(key);
+    });
+    return Array.from(months).sort().reverse().map(m => {
+      const [year, month] = m.split('-');
+      const label = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      return { value: m, label };
+    });
+  }, [timesheets]);
+
   const filtered = timesheets.filter(ts => {
     if (filter.status && ts.status !== filter.status) return false;
     if (filter.month) {
@@ -63,13 +78,27 @@ export default function MyTimesheets() {
     return true;
   });
 
+  // Group filtered timesheets by month for display
+  const groupedByMonth = useMemo(() => {
+    const groups = {};
+    filtered.forEach(ts => {
+      const d = new Date(ts.week_ending + 'T00:00:00');
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      if (!groups[key]) groups[key] = { label, timesheets: [], total: 0 };
+      groups[key].timesheets.push(ts);
+      groups[key].total += parseFloat(ts.total_amount || 0);
+    });
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [filtered]);
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div className="page">
       <PageHeader
         title="My Timesheets"
-        subtitle={`${timesheets.length} total submissions`}
+        subtitle={`${timesheets.length} total submission${timesheets.length !== 1 ? 's' : ''}`}
       />
 
       {justSubmitted && (
@@ -79,8 +108,8 @@ export default function MyTimesheets() {
             <polyline points="22 4 12 14.01 9 11.01" />
           </svg>
           <div>
-            <strong>Timesheet submitted successfully!</strong>
-            <p>Your timesheet has been received and is pending review.</p>
+            <strong>Timesheet submitted!</strong>
+            <p>Your timesheet has been received and is pending approval.</p>
           </div>
         </div>
       )}
@@ -88,22 +117,25 @@ export default function MyTimesheets() {
       {/* Filters */}
       <div className="filters">
         <select
+          value={filter.month}
+          onChange={(e) => setFilter(f => ({ ...f, month: e.target.value }))}
+          className="form-input form-input--sm"
+        >
+          <option value="">All Months</option>
+          {monthOptions.map(m => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+        <select
           value={filter.status}
           onChange={(e) => setFilter(f => ({ ...f, status: e.target.value }))}
           className="form-input form-input--sm"
         >
           <option value="">All Statuses</option>
-          <option value="submitted">Submitted</option>
-          <option value="reviewed">Reviewed</option>
-          <option value="paid">Paid</option>
-          <option value="queried">Queried</option>
+          {STATUSES.map(s => (
+            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+          ))}
         </select>
-        <input
-          type="month"
-          value={filter.month}
-          onChange={(e) => setFilter(f => ({ ...f, month: e.target.value }))}
-          className="form-input form-input--sm"
-        />
       </div>
 
       {filtered.length === 0 ? (
@@ -115,35 +147,52 @@ export default function MyTimesheets() {
           }
         />
       ) : (
-        <div className="card-list">
-          {filtered.map(ts => (
-            <div key={ts.id} className="timesheet-card">
-              <div className="timesheet-card__top">
-                <span className="timesheet-card__date">{formatDate(ts.week_ending)}</span>
-                <StatusPill status={ts.status} />
+        <div className="my-ts-list">
+          {groupedByMonth.map(([key, group]) => (
+            <div key={key} className="my-ts-month">
+              <div className="my-ts-month__header">
+                <h3>{group.label}</h3>
+                <span className="my-ts-month__total">{formatCurrency(group.total)}</span>
               </div>
-              <div className="timesheet-card__details">
-                <span>{ts.sites?.site_name}</span>
-                <PaymentPill method={ts.payment_method} />
+              <div className="my-ts-month__items">
+                {group.timesheets.map(ts => (
+                  <div key={ts.id} className={`my-ts-row ${ts.status === 'queried' ? 'my-ts-row--queried' : ''}`}>
+                    <div className="my-ts-row__main">
+                      <div className="my-ts-row__left">
+                        <span className="my-ts-row__date">{formatDate(ts.week_ending)}</span>
+                        <span className="my-ts-row__site">{ts.sites?.site_name}</span>
+                      </div>
+                      <div className="my-ts-row__amount">{formatCurrency(ts.total_amount)}</div>
+                    </div>
+                    <div className="my-ts-row__meta">
+                      <div className="my-ts-row__field">
+                        <span className="my-ts-row__label">Status:</span>
+                        <ApprovalPipeline status={ts.status} />
+                      </div>
+                      <div className="my-ts-row__field">
+                        <span className="my-ts-row__label">Payment:</span>
+                        <PaymentPill method={ts.payment_method} />
+                      </div>
+                      <button className="btn btn--sm btn--outline" onClick={() => handleDownloadPDF(ts)}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download
+                      </button>
+                    </div>
+                    {ts.status === 'queried' && ts.admin_notes && (
+                      <div className="my-ts-row__query">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                          <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        <span><strong>Query:</strong> {ts.admin_notes}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="timesheet-card__bottom">
-                <span className="timesheet-card__amount">{formatCurrency(ts.total_amount)}</span>
-                <button
-                  className="btn btn--sm btn--outline"
-                  onClick={() => handleDownloadPDF(ts)}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  PDF
-                </button>
-              </div>
-              {ts.status === 'queried' && ts.admin_notes && (
-                <div className="timesheet-card__notes">
-                  <strong>Admin Note:</strong> {ts.admin_notes}
-                </div>
-              )}
             </div>
           ))}
         </div>
