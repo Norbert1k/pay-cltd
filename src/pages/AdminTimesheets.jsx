@@ -22,13 +22,52 @@ export default function AdminTimesheets() {
   useEffect(() => { if (paymentDates.length > 0) fetchTimesheets(); }, [selectedPeriodIdx, paymentDates]);
 
   const fetchPaymentDates = async () => {
-    const { data } = await supabase.from('payment_dates').select('*').order('payment_date', { ascending: false });
-    setPaymentDates(data || []);
-    if (!data || data.length === 0) {
-      // No payment dates — fetch all timesheets
+    const { data } = await supabase.from('payment_dates').select('*').order('payment_date', { ascending: true });
+    const sorted = data || [];
+    setPaymentDates(sorted);
+
+    if (sorted.length === 0) {
       fetchAllTimesheets();
+      return;
     }
+
+    // Auto-select current period: find the next upcoming or most recent payment date
+    const today = new Date().toISOString().split('T')[0];
+    let currentIdx = sorted.findIndex(d => d.payment_date >= today);
+    if (currentIdx === -1) currentIdx = sorted.length - 1; // all past, show latest
+    setSelectedPeriodIdx(currentIdx);
   };
+
+  // Calculate the 2 week-ending Sundays that fall within the selected period
+  const getWeekEndingsForPeriod = () => {
+    if (paymentDates.length === 0) return [];
+    const current = paymentDates[selectedPeriodIdx];
+    const previous = selectedPeriodIdx > 0 ? paymentDates[selectedPeriodIdx - 1] : null;
+    if (!current) return [];
+
+    const periodEnd = current.cutoff_date || current.payment_date;
+    const periodStart = previous ? previous.payment_date : '2020-01-01';
+
+    // Find all Sundays between periodStart (exclusive) and periodEnd (inclusive)
+    const sundays = [];
+    const start = new Date(periodStart + 'T00:00:00');
+    const end = new Date(periodEnd + 'T00:00:00');
+
+    // Start from the Sunday after periodStart
+    const d = new Date(start);
+    d.setDate(d.getDate() + 1); // day after period start
+    // Move to next Sunday
+    while (d.getDay() !== 0) d.setDate(d.getDate() + 1);
+
+    while (d <= end) {
+      sundays.push(d.toISOString().split('T')[0]);
+      d.setDate(d.getDate() + 7);
+    }
+
+    return sundays;
+  };
+
+  const periodWeekEndings = getWeekEndingsForPeriod();
 
   const fetchAllTimesheets = async () => {
     const { data, error } = await supabase
@@ -43,7 +82,7 @@ export default function AdminTimesheets() {
   const fetchTimesheets = async () => {
     if (paymentDates.length === 0) return;
     const current = paymentDates[selectedPeriodIdx];
-    const previous = paymentDates[selectedPeriodIdx + 1];
+    const previous = selectedPeriodIdx > 0 ? paymentDates[selectedPeriodIdx - 1] : null;
     if (!current) return;
 
     const periodStart = previous ? previous.payment_date : '2020-01-01';
@@ -147,7 +186,7 @@ export default function AdminTimesheets() {
 
   return (
     <div className="page">
-      <PageHeader title="All Timesheets" subtitle={currentPayment ? `Payment: ${formatDate(currentPayment.payment_date)}` : `${timesheets.length} total`}
+      <PageHeader title="All Timesheets" subtitle={`${filtered.length} timesheet${filtered.length !== 1 ? 's' : ''} this period`}
         actions={
           <div className="action-btns">
             {filtered.length > 0 && (
@@ -165,17 +204,40 @@ export default function AdminTimesheets() {
       {/* Period Navigation */}
       {paymentDates.length > 0 && (
         <div className="period-selector">
-          <button className="btn btn--sm btn--outline" disabled={selectedPeriodIdx >= paymentDates.length - 1}
-            onClick={() => { setSelectedPeriodIdx(i => i + 1); setLoading(true); }}>
-            &larr; Previous Period
-          </button>
-          <div className="period-selector__label">
-            <strong>{currentPayment?.label || formatDate(currentPayment?.payment_date)}</strong>
-            <span className="text-muted">Cutoff: {formatDate(currentPayment?.cutoff_date)}</span>
-          </div>
           <button className="btn btn--sm btn--outline" disabled={selectedPeriodIdx <= 0}
             onClick={() => { setSelectedPeriodIdx(i => i - 1); setLoading(true); }}>
-            Next Period &rarr;
+            &larr; Previous
+          </button>
+          <div className="period-selector__center">
+            <div className="period-selector__title">Payment Run: {formatDate(currentPayment?.payment_date)}</div>
+            <div className="period-selector__weeks">
+              {periodWeekEndings.length > 0 ? (
+                <>
+                  Covering week{periodWeekEndings.length > 1 ? 's' : ''} ending{' '}
+                  {periodWeekEndings.map((we, i) => (
+                    <span key={we}>
+                      <strong>{formatDate(we)}</strong>
+                      {i < periodWeekEndings.length - 1 && ' & '}
+                    </span>
+                  ))}
+                </>
+              ) : (
+                <span>No weeks in this period</span>
+              )}
+            </div>
+            <div className="period-selector__cutoff">
+              Submit by: {formatDate(currentPayment?.cutoff_date)} &mdash; {(() => {
+                const days = Math.ceil((new Date(currentPayment?.cutoff_date + 'T00:00:00') - new Date()) / 86400000);
+                if (days < 0) return <span className="text-red">Cutoff passed</span>;
+                if (days === 0) return <span className="text-red">Today!</span>;
+                if (days === 1) return <span style={{color: '#BA7517'}}>Tomorrow</span>;
+                return <span>{days} days left</span>;
+              })()}
+            </div>
+          </div>
+          <button className="btn btn--sm btn--outline" disabled={selectedPeriodIdx >= paymentDates.length - 1}
+            onClick={() => { setSelectedPeriodIdx(i => i + 1); setLoading(true); }}>
+            Next &rarr;
           </button>
         </div>
       )}
