@@ -185,6 +185,27 @@
   color: var(--text-muted);
 }
 
+[data-theme="dark"] .approval-box--submitted {
+  background: #151e2e;
+  color: #6aa4e0;
+}
+
+[data-theme="dark"] .approval-box--waiting {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .approval-box--complete {
+  background: #1a2e18;
+  color: #80c480;
+}
+
+[data-theme="dark"] .approval-box--queried {
+  background: #2d1515;
+  color: #f0a0a0;
+}
+
 [data-theme="dark"] .week-tag {
   background: #151e2e;
   color: #6aa4e0;
@@ -2290,6 +2311,17 @@ a {
 .approval-box--pending {
   background: #fef3c7;
   color: #92400e;
+}
+
+.approval-box--submitted {
+  background: #eff6ff;
+  color: #378ADD;
+}
+
+.approval-box--waiting {
+  background: var(--bg-page);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
 }
 
 .approval-box--queried {
