@@ -223,9 +223,14 @@ export default function AdminTimesheets() {
                         </td>
                         <td><span className="text-muted">{group.worker?.trade || '-'}</span></td>
                         <td>
-                          {group.weekEndings.map(we => (
-                            <span key={we} className="week-tag">{formatDateCompact(we)}</span>
-                          ))}
+                          <div style={{display:'flex', gap: 4, flexWrap:'nowrap'}}>
+                            {group.weekEndings.map((we, i) => (
+                              <span key={we}>
+                                <span className="week-tag">{formatDateCompact(we)}</span>
+                                {i < group.weekEndings.length - 1 && <span style={{color:'var(--grey)', fontSize:'0.7rem'}}> &amp; </span>}
+                              </span>
+                            ))}
+                          </div>
                         </td>
                         <td>{sites.join(', ')}</td>
                         <td><strong>{formatCurrency(group.totalAmount)}</strong></td>
