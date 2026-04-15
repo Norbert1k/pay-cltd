@@ -76,10 +76,10 @@ export default function Sidebar({ open, onClose }) {
   const adminLinks = [
     { to: '/admin', label: 'Dashboard', icon: <IconDashboard /> },
     { to: '/admin/timesheets', label: 'All Timesheets', icon: <IconTimesheets /> },
-    { to: '/admin/calendar', label: 'Calendar', icon: <IconCalendar /> },
-    { to: '/admin/workers', label: 'Workers', icon: <IconWorkers /> },
+    { to: '/admin/workers', label: 'User Management', icon: <IconWorkers /> },
     { to: '/admin/sites', label: 'Sites', icon: <IconSites /> },
     { to: '/admin/payments', label: 'Payment Dates', icon: <IconCalendar /> },
+    { to: '/admin/calendar', label: 'Calendar', icon: <IconCalendar /> },
   ];
 
   const links = isAdmin ? adminLinks : workerLinks;
