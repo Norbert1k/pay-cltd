@@ -1344,7 +1344,7 @@ a {
   border-top: 1px solid var(--grey-200);
   padding-top: 8px;
   margin-top: 4px;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
 }
 
 .payment-totals__dot {
@@ -1360,6 +1360,29 @@ a {
 
 .payment-totals__dot--other {
   background: var(--purple);
+}
+
+/* === Period Navigation === */
+.period-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.payment-period-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--grey-200);
+}
+
+.payment-period-header strong {
+  font-size: 1.05rem;
+}
+
+.payment-period-header span {
+  font-size: 0.85rem;
 }
 
 /* === Filters === */
