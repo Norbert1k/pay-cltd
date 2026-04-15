@@ -205,7 +205,7 @@
 }
 
 [data-theme="dark"] .admin-table tbody tr.row-expanded {
-  background: #1a2e18;
+  background: var(--bg-hover);
 }
 
 [data-theme="dark"] .admin-table {
@@ -242,7 +242,7 @@
 }
 
 [data-theme="dark"] .worker-group-row:hover {
-  background: var(--bg-hover);
+  background: #22242a;
 }
 
 [data-theme="dark"] .detail-row td {
