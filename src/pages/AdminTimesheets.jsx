@@ -46,7 +46,16 @@ export default function AdminTimesheets() {
     if (!current) return [];
 
     const periodEnd = current.cutoff_date || current.payment_date;
-    const periodStart = previous ? previous.payment_date : '2020-01-01';
+
+    // If no previous payment date, default to 14 days before cutoff (2 weeks)
+    let periodStart;
+    if (previous) {
+      periodStart = previous.payment_date;
+    } else {
+      const d = new Date(periodEnd + 'T00:00:00');
+      d.setDate(d.getDate() - 15);
+      periodStart = d.toISOString().split('T')[0];
+    }
 
     // Find all Sundays between periodStart (exclusive) and periodEnd (inclusive)
     const sundays = [];
@@ -55,8 +64,7 @@ export default function AdminTimesheets() {
 
     // Start from the Sunday after periodStart
     const d = new Date(start);
-    d.setDate(d.getDate() + 1); // day after period start
-    // Move to next Sunday
+    d.setDate(d.getDate() + 1);
     while (d.getDay() !== 0) d.setDate(d.getDate() + 1);
 
     while (d <= end) {
@@ -85,8 +93,15 @@ export default function AdminTimesheets() {
     const previous = selectedPeriodIdx > 0 ? paymentDates[selectedPeriodIdx - 1] : null;
     if (!current) return;
 
-    const periodStart = previous ? previous.payment_date : '2020-01-01';
     const periodEnd = current.cutoff_date || current.payment_date;
+    let periodStart;
+    if (previous) {
+      periodStart = previous.payment_date;
+    } else {
+      const d = new Date(periodEnd + 'T00:00:00');
+      d.setDate(d.getDate() - 15);
+      periodStart = d.toISOString().split('T')[0];
+    }
 
     const { data, error } = await supabase
       .from('timesheets')
