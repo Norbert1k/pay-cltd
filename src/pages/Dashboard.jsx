@@ -81,6 +81,8 @@ export default function Dashboard() {
   const dismissAlert = async (alertId) => {
     await supabase.from('alerts').update({ read: true }).eq('id', alertId);
     setAlerts(prev => prev.filter(a => a.id !== alertId));
+    setQueriedCount(prev => Math.max(0, prev - (alerts.find(a => a.id === alertId)?.type === 'query' ? 1 : 0)));
+    window.dispatchEvent(new Event('badges-refresh'));
   };
 
   if (loading) return <LoadingSpinner />;
