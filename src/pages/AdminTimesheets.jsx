@@ -143,6 +143,7 @@ export default function AdminTimesheets() {
     }
     setStatusNote('');
     fetchTimesheets();
+    window.dispatchEvent(new Event('badges-refresh'));
   };
 
   const handleSendAlert = async (workerId) => {
@@ -154,6 +155,7 @@ export default function AdminTimesheets() {
     });
     setAlertMessage('');
     setSendingAlert(false);
+    window.dispatchEvent(new Event('badges-refresh'));
   };
 
   const handleExpandWorker = async (workerId) => {
