@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { formatDate, ROLES } from '../lib/utils';
+import { formatDate, ROLES, ROLE_LIST, TRADES } from '../lib/utils';
 import { PageHeader, LoadingSpinner, EmptyState } from '../components/ui';
 
 export default function AdminWorkers() {
@@ -12,6 +12,10 @@ export default function AdminWorkers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('all');
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: '', full_name: '', trade: '', role: 'worker' });
+  const [inviting, setInviting] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => { fetchAll(); }, []);
@@ -77,6 +81,63 @@ export default function AdminWorkers() {
     fetchAll();
   };
 
+  const handleInviteUser = async (e) => {
+    e.preventDefault();
+    setInviting(true);
+    setInviteMessage('');
+
+    try {
+      // Use Supabase admin invite (sends magic link email)
+      // Since we're on the client, we'll use signUp with a random password
+      // then immediately send a password reset email
+      const tempPassword = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + 'A1!';
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: inviteForm.email,
+        password: tempPassword,
+        options: {
+          data: {
+            full_name: inviteForm.full_name,
+            trade: inviteForm.trade,
+          },
+        },
+      });
+
+      if (signUpError) {
+        setInviteMessage('Error: ' + signUpError.message);
+        setInviting(false);
+        return;
+      }
+
+      // Update the profile with the correct role and auto-approve
+      if (signUpData?.user?.id) {
+        // Small delay to ensure trigger has created the profile
+        await new Promise(r => setTimeout(r, 1000));
+
+        await supabase.from('profiles').update({
+          role: inviteForm.role,
+          approval_status: 'approved',
+          approved_by: adminProfile.id,
+          approved_at: new Date().toISOString(),
+          invited_by: adminProfile.id,
+        }).eq('id', signUpData.user.id);
+      }
+
+      // Send password reset so the user can set their own password
+      await supabase.auth.resetPasswordForEmail(inviteForm.email, {
+        redirectTo: window.location.origin + '/login',
+      });
+
+      setInviteMessage(`Invite sent to ${inviteForm.email}. They'll receive an email to set their password.`);
+      setInviteForm({ email: '', full_name: '', trade: '', role: 'worker' });
+      setShowInvite(false);
+      fetchAll();
+    } catch (err) {
+      setInviteMessage('Error: ' + err.message);
+    }
+    setInviting(false);
+  };
+
   const handleExportCSV = () => {
     const headers = ['Name', 'Email', 'Phone', 'Trade', 'Role', 'NI', 'UTR', 'Status', 'CIS Rate', 'CIS Verified', 'Last Submission'];
     const rows = workers.map(w => [
@@ -104,18 +165,71 @@ export default function AdminWorkers() {
   return (
     <div className="page">
       <PageHeader
-        title="Users & Workers"
+        title="User Management"
         subtitle={`${workers.filter(w => w.status === 'active').length} active, ${pendingUsers.length} pending approval`}
         actions={
-          <button className="btn btn--sm btn--outline" onClick={handleExportCSV}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Export CSV
-          </button>
+          <div className="action-btns">
+            <button className="btn btn--sm btn--primary" onClick={() => setShowInvite(!showInvite)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" />
+                <line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
+              </svg>
+              Invite User
+            </button>
+            <button className="btn btn--sm btn--outline" onClick={handleExportCSV}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export CSV
+            </button>
+          </div>
         }
       />
+
+      {/* Invite Message */}
+      {inviteMessage && (
+        <div className={`alert ${inviteMessage.startsWith('Error') ? 'alert--warning' : 'alert--success'}`}>
+          <div><strong>{inviteMessage}</strong></div>
+        </div>
+      )}
+
+      {/* Invite User Form */}
+      {showInvite && (
+        <form onSubmit={handleInviteUser} className="form-section form-section--bordered">
+          <h3 className="form-section__title">Invite New User</h3>
+          <p className="form-section__help">They'll receive an email to set their password and access the system.</p>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label">Full Name *</label>
+              <input type="text" value={inviteForm.full_name} onChange={(e) => setInviteForm(f => ({...f, full_name: e.target.value}))} className="form-input" required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Email *</label>
+              <input type="email" value={inviteForm.email} onChange={(e) => setInviteForm(f => ({...f, email: e.target.value}))} className="form-input" required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Trade / Role</label>
+              <select value={inviteForm.trade} onChange={(e) => setInviteForm(f => ({...f, trade: e.target.value}))} className="form-input">
+                <option value="">Select trade...</option>
+                {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">System Role</label>
+              <select value={inviteForm.role} onChange={(e) => setInviteForm(f => ({...f, role: e.target.value}))} className="form-input">
+                {ROLE_LIST.map(r => <option key={r} value={r}>{ROLES[r]}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn--primary" disabled={inviting}>
+              {inviting ? 'Sending Invite...' : 'Send Invite'}
+            </button>
+            <button type="button" className="btn btn--outline" onClick={() => setShowInvite(false)}>Cancel</button>
+          </div>
+        </form>
+      )}
 
       {/* Pending Approvals Banner */}
       {pendingUsers.length > 0 && (
