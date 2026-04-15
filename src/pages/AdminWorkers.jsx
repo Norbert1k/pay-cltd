@@ -69,6 +69,7 @@ export default function AdminWorkers() {
     });
 
     fetchAll();
+    window.dispatchEvent(new Event('badges-refresh'));
   };
 
   const rejectUser = async (userId) => {
@@ -79,6 +80,7 @@ export default function AdminWorkers() {
       status: 'inactive',
     }).eq('id', userId);
     fetchAll();
+    window.dispatchEvent(new Event('badges-refresh'));
   };
 
   const handleInviteUser = async (e) => {
