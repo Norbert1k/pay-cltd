@@ -1947,6 +1947,7 @@ a {
   font-size: 0.75rem;
   font-weight: 600;
   margin-right: 4px;
+  white-space: nowrap;
 }
 
 /* === Worker Group Row === */
@@ -1957,6 +1958,24 @@ a {
 
 .worker-group-row:hover {
   background: #f9fafb;
+}
+
+.worker-group-row td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.worker-group-row td:nth-child(1) {
+  min-width: 140px;
+}
+
+.worker-group-row td:nth-child(3) {
+  min-width: 120px;
+}
+
+.worker-group-row td:nth-child(4) {
+  white-space: normal;
+  max-width: 200px;
 }
 
 /* === Timesheet Detail Card (expanded) === */
