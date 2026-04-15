@@ -17,29 +17,22 @@ export function StatusPill({ status }) {
   );
 }
 
-// 3-stage approval pipeline — shows progress through stages
+// 3-stage approval pipeline — read-only display version
 export function ApprovalPipeline({ status }) {
-  const stages = [
-    { key: 'approved_accounts', label: 'Accounts', color: '#BA7517' },
-    { key: 'approved_director', label: 'Director', color: '#448a40' },
-    { key: 'paid', label: 'Paid', color: '#2d6329' },
-  ];
+  const order = ['submitted', 'approved_accounts', 'approved_director', 'paid'];
+  const currentIdx = order.indexOf(status);
 
-  const getStageStatus = (stageKey) => {
-    if (status === 'queried') return 'queried';
-    const order = ['submitted', 'approved_accounts', 'approved_director', 'paid'];
-    const currentIdx = order.indexOf(status);
-    const stageIdx = order.indexOf(stageKey);
-    if (stageIdx <= currentIdx) return 'complete';
-    if (stageIdx === currentIdx + 1) return 'current';
-    return 'pending';
-  };
+  const stages = [
+    { key: 'approved_accounts', label: 'Accounts', icon: 'check' },
+    { key: 'approved_director', label: 'Director', icon: 'check' },
+    { key: 'paid', label: 'Paid', icon: 'pound' },
+  ];
 
   if (status === 'queried') {
     return (
       <div className="approval-pipeline">
-        <div className="approval-stage approval-stage--queried">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <div className="approval-box approval-box--queried">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
@@ -52,20 +45,103 @@ export function ApprovalPipeline({ status }) {
   return (
     <div className="approval-pipeline">
       {stages.map((stage) => {
-        const stageStatus = getStageStatus(stage.key);
+        const stageIdx = order.indexOf(stage.key);
+        const isComplete = stageIdx <= currentIdx;
         return (
-          <div key={stage.key} className={`approval-stage approval-stage--${stageStatus}`}>
-            {stageStatus === 'complete' ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            ) : (
-              <div className="approval-stage__dot" />
-            )}
+          <div key={stage.key} className={`approval-box ${isComplete ? 'approval-box--complete' : 'approval-box--pending'}`}>
+            <div className="approval-box__check">
+              {isComplete ? (
+                stage.icon === 'pound' ? (
+                  <span className="approval-box__pound">&pound;</span>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )
+              ) : (
+                <div className="approval-box__empty" />
+              )}
+            </div>
             <span>{stage.label}</span>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Interactive approval pipeline — clickable tick boxes for admin
+export function ApprovalControls({ status, onStatusChange, canApproveAccounts, canApproveDirector, canMarkPaid }) {
+  const order = ['submitted', 'approved_accounts', 'approved_director', 'paid'];
+  const currentIdx = order.indexOf(status);
+
+  const stages = [
+    { key: 'approved_accounts', label: 'Accounts Approved', icon: 'check', enabled: canApproveAccounts },
+    { key: 'approved_director', label: 'Director Approved', icon: 'check', enabled: canApproveDirector },
+    { key: 'paid', label: 'Paid', icon: 'pound', enabled: canMarkPaid },
+  ];
+
+  const handleToggle = (stageKey) => {
+    const stageIdx = order.indexOf(stageKey);
+    const isComplete = stageIdx <= currentIdx;
+    if (isComplete) {
+      // Un-toggle: go back to previous stage
+      const prevStage = order[stageIdx - 1] || 'submitted';
+      onStatusChange(prevStage);
+    } else {
+      // Toggle on
+      onStatusChange(stageKey);
+    }
+  };
+
+  const isQueried = status === 'queried';
+
+  return (
+    <div className="approval-controls">
+      <div className="approval-controls__stages">
+        {stages.map((stage) => {
+          const stageIdx = order.indexOf(stage.key);
+          const isComplete = !isQueried && stageIdx <= currentIdx;
+          const isDisabled = !stage.enabled;
+
+          return (
+            <button
+              key={stage.key}
+              className={`approval-checkbox ${isComplete ? 'approval-checkbox--complete' : 'approval-checkbox--pending'} ${isDisabled ? 'approval-checkbox--disabled' : ''}`}
+              onClick={() => !isDisabled && handleToggle(stage.key)}
+              disabled={isDisabled}
+              title={isDisabled ? 'You don\'t have permission for this action' : (isComplete ? `Undo: ${stage.label}` : stage.label)}
+            >
+              <div className="approval-checkbox__box">
+                {isComplete ? (
+                  stage.icon === 'pound' ? (
+                    <span className="approval-checkbox__pound">&pound;</span>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )
+                ) : null}
+              </div>
+              <span>{stage.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Query button separate */}
+      <button
+        className={`approval-checkbox ${isQueried ? 'approval-checkbox--queried' : 'approval-checkbox--query-idle'}`}
+        onClick={() => onStatusChange(isQueried ? 'submitted' : 'queried')}
+      >
+        <div className="approval-checkbox__box approval-checkbox__box--query">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
+        <span>Query</span>
+      </button>
     </div>
   );
 }
