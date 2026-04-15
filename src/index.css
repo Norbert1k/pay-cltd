@@ -2693,16 +2693,45 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 4px 8px;
-  border-bottom: 2px solid var(--green);
-  margin-bottom: 8px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  margin-bottom: 6px;
+}
+
+.my-ts-month__header:hover {
+  border-color: var(--green);
+}
+
+.my-ts-month__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .my-ts-month__header h3 {
   font-family: var(--font-heading);
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.my-ts-month__count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.my-ts-month__chevron {
+  transition: transform 0.2s;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.my-ts-month__chevron--open {
+  transform: rotate(180deg);
 }
 
 .my-ts-month__total {
