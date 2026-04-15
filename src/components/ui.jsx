@@ -22,17 +22,11 @@ export function ApprovalPipeline({ status }) {
   const order = ['submitted', 'approved_accounts', 'approved_director', 'paid'];
   const currentIdx = order.indexOf(status);
 
-  const stages = [
-    { key: 'approved_accounts', label: 'Accounts', icon: 'check' },
-    { key: 'approved_director', label: 'Director', icon: 'check' },
-    { key: 'paid', label: 'Paid', icon: 'pound' },
-  ];
-
   if (status === 'queried') {
     return (
       <div className="approval-pipeline">
         <div className="approval-box approval-box--queried">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
@@ -42,19 +36,41 @@ export function ApprovalPipeline({ status }) {
     );
   }
 
+  if (status === 'submitted') {
+    return (
+      <div className="approval-pipeline">
+        <div className="approval-box approval-box--submitted">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M12 5v14M5 12l7-7 7 7" />
+          </svg>
+          <span>Submitted</span>
+        </div>
+        <div className="approval-box approval-box--waiting"><div className="approval-box__empty" /><span>Accounts</span></div>
+        <div className="approval-box approval-box--waiting"><div className="approval-box__empty" /><span>Director</span></div>
+        <div className="approval-box approval-box--waiting"><div className="approval-box__empty" /><span>Paid</span></div>
+      </div>
+    );
+  }
+
+  const stages = [
+    { key: 'approved_accounts', label: 'Accounts', icon: 'check' },
+    { key: 'approved_director', label: 'Director', icon: 'check' },
+    { key: 'paid', label: 'Paid', icon: 'pound' },
+  ];
+
   return (
     <div className="approval-pipeline">
       {stages.map((stage) => {
         const stageIdx = order.indexOf(stage.key);
         const isComplete = stageIdx <= currentIdx;
         return (
-          <div key={stage.key} className={`approval-box ${isComplete ? 'approval-box--complete' : 'approval-box--pending'}`}>
+          <div key={stage.key} className={`approval-box ${isComplete ? 'approval-box--complete' : 'approval-box--waiting'}`}>
             <div className="approval-box__check">
               {isComplete ? (
                 stage.icon === 'pound' ? (
                   <span className="approval-box__pound">&pound;</span>
                 ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 )
