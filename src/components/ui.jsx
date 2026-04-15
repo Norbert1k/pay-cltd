@@ -1,10 +1,17 @@
-import { STATUS_COLORS, PAYMENT_COLORS } from '../lib/utils';
+import { STATUS_COLORS, PAYMENT_COLORS, STATUS_LABELS } from '../lib/utils';
 
 export function StatusPill({ status }) {
   const color = STATUS_COLORS[status] || '#808080';
+  const label = STATUS_LABELS[status] || status;
+  const isApproved = status === 'approved';
   return (
     <span className="pill" style={{ background: color + '18', color, borderColor: color + '40' }}>
-      {status?.charAt(0).toUpperCase() + status?.slice(1)}
+      {isApproved && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: 3 }}>
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      )}
+      {label}
     </span>
   );
 }

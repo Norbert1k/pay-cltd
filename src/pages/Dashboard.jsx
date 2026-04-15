@@ -10,6 +10,8 @@ export default function Dashboard() {
   const [recentTimesheets, setRecentTimesheets] = useState([]);
   const [currentWeekSubmitted, setCurrentWeekSubmitted] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState([]);
+  const [nextPayment, setNextPayment] = useState(null);
 
   const weekEnding = getNextSunday();
 
@@ -30,7 +32,6 @@ export default function Dashboard() {
         .eq('worker_id', profile.id)
         .eq('week_ending', weekEnding)
         .maybeSingle();
-
       setCurrentWeekSubmitted(currentWeek);
 
       // Recent timesheets
@@ -40,8 +41,27 @@ export default function Dashboard() {
         .eq('worker_id', profile.id)
         .order('week_ending', { ascending: false })
         .limit(5);
-
       setRecentTimesheets(recent || []);
+
+      // Unread alerts
+      const { data: alertData } = await supabase
+        .from('alerts')
+        .select('*')
+        .eq('worker_id', profile.id)
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      setAlerts(alertData || []);
+
+      // Next payment date
+      const today = new Date().toISOString().split('T')[0];
+      const { data: payDates } = await supabase
+        .from('payment_dates')
+        .select('*')
+        .gte('payment_date', today)
+        .order('payment_date', { ascending: true })
+        .limit(1);
+      setNextPayment(payDates?.[0] || null);
     } catch (err) {
       console.error('Dashboard fetch error:', err);
     } finally {
@@ -49,10 +69,20 @@ export default function Dashboard() {
     }
   };
 
+  const dismissAlert = async (alertId) => {
+    await supabase.from('alerts').update({ read: true }).eq('id', alertId);
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
+  };
+
   if (loading) return <LoadingSpinner />;
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
   const profileComplete = profile?.payment_info_complete;
+
+  // Calculate days until cutoff
+  const daysUntilCutoff = nextPayment?.cutoff_date
+    ? Math.ceil((new Date(nextPayment.cutoff_date + 'T00:00:00') - new Date()) / (1000 * 60 * 60 * 24))
+    : null;
 
   return (
     <div className="page">
@@ -60,6 +90,49 @@ export default function Dashboard() {
         title={`Welcome, ${firstName}`}
         subtitle="Submit and track your weekly timesheets"
       />
+
+      {/* Alerts / Notifications */}
+      {alerts.length > 0 && (
+        <div className="alerts-section">
+          {alerts.map(a => (
+            <div key={a.id} className={`alert ${a.type === 'query' ? 'alert--warning' : a.type === 'status_change' ? 'alert--success' : 'alert--info'}`}>
+              <div style={{flex: 1}}>
+                <strong>{a.title}</strong>
+                <p>{a.message}</p>
+              </div>
+              <button className="alert__dismiss" onClick={() => dismissAlert(a.id)} title="Dismiss">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Payment Date Banner */}
+      {nextPayment && (
+        <div className="payment-banner">
+          <div className="payment-banner__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <div className="payment-banner__content">
+            <strong>Next Payment: {formatDate(nextPayment.payment_date)}</strong>
+            <p>
+              Submit your timesheet by <strong>{formatDate(nextPayment.cutoff_date)}</strong> (
+              {daysUntilCutoff !== null && daysUntilCutoff >= 0
+                ? daysUntilCutoff === 0 ? 'today!' : daysUntilCutoff === 1 ? 'tomorrow!' : `${daysUntilCutoff} days left`
+                : 'cutoff passed'
+              }
+              ) to be included in this payment run.
+            </p>
+            <p className="payment-banner__note">Late submissions will go on the next payment run.</p>
+          </div>
+        </div>
+      )}
 
       {!profileComplete && (
         <div className="alert alert--warning">

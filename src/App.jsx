@@ -15,6 +15,7 @@ import AdminCalendar from './pages/AdminCalendar';
 import AdminWorkers from './pages/AdminWorkers';
 import AdminWorkerDetail from './pages/AdminWorkerDetail';
 import AdminSites from './pages/AdminSites';
+import AdminPaymentDates from './pages/AdminPaymentDates';
 
 function ProtectedRoute() {
   const { user, loading } = useAuth();
@@ -76,6 +77,7 @@ export default function App() {
               <Route path="/admin/workers" element={<AdminWorkers />} />
               <Route path="/admin/workers/:id" element={<AdminWorkerDetail />} />
               <Route path="/admin/sites" element={<AdminSites />} />
+              <Route path="/admin/payments" element={<AdminPaymentDates />} />
             </Route>
           </Route>
 

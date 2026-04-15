@@ -50,16 +50,46 @@ export function formatDateTime(dateStr) {
 // Status colours
 export const STATUS_COLORS = {
   submitted: '#378ADD',
-  reviewed: '#BA7517',
-  paid: '#448a40',
+  approved: '#448a40',
+  paid: '#2d6329',
   queried: '#A32D2D',
 };
+
+// Status labels (for display)
+export const STATUS_LABELS = {
+  submitted: 'Submitted',
+  approved: 'Approved',
+  paid: 'Paid',
+  queried: 'Queried',
+};
+
+// All available statuses
+export const STATUSES = ['submitted', 'approved', 'paid', 'queried'];
 
 // Payment method colours
 export const PAYMENT_COLORS = {
   card: '#448a40',
   other: '#534AB7',
 };
+
+// Trades list (alphabetical)
+export const TRADES = [
+  'Bricklayer',
+  'Carpenter',
+  'Cleaner',
+  'Decorator',
+  'Electrician',
+  'Groundworker',
+  'Labourer',
+  'Plasterer',
+  'Plumber',
+  'Renderer',
+  'Site Assistant',
+  'Site Manager',
+  'Tape & Jointer',
+  'Tiler',
+  'Other',
+];
 
 // Days of the week
 export const DAYS = [

@@ -112,6 +112,7 @@ export default function AdminWorkers() {
                   <th>Name</th>
                   <th>Trade</th>
                   <th>NI</th>
+                  <th>CIS</th>
                   <th>Status</th>
                   <th>Payment Info</th>
                   <th>Last Submission</th>
@@ -127,6 +128,13 @@ export default function AdminWorkers() {
                     </td>
                     <td>{w.trade || '-'}</td>
                     <td>{w.national_insurance || '-'}</td>
+                    <td>
+                      {w.cis_verified ? (
+                        <span className="status-badge status-badge--green">{w.cis_rate}%</span>
+                      ) : (
+                        <span className="status-badge status-badge--amber">Unverified</span>
+                      )}
+                    </td>
                     <td>
                       <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>
                         {w.status}

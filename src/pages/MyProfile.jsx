@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { TRADES } from '../lib/utils';
 import { PageHeader, LoadingSpinner } from '../components/ui';
 
 export default function MyProfile() {
@@ -99,8 +100,11 @@ export default function MyProfile() {
               <input type="tel" value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className="form-input" placeholder="07xxx xxx xxx" />
             </div>
             <div className="form-group">
-              <label className="form-label">Trade</label>
-              <input type="text" value={form.trade} onChange={(e) => handleChange('trade', e.target.value)} className="form-input" placeholder="e.g. Electrician, Plumber" />
+              <label className="form-label">Trade / Role *</label>
+              <select value={form.trade} onChange={(e) => handleChange('trade', e.target.value)} className="form-input" required>
+                <option value="">Select your trade...</option>
+                {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
           </div>
         </div>

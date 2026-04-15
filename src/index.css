@@ -1620,6 +1620,146 @@ a {
 .text-red { color: var(--red); }
 .text-green { color: var(--green); }
 
+/* === Payment Banner === */
+.payment-banner {
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #e8f5e7 0%, #f0fdf0 100%);
+  border: 1px solid var(--green);
+  border-radius: var(--radius-lg);
+  align-items: flex-start;
+}
+
+.payment-banner__icon {
+  color: var(--green);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.payment-banner__content strong {
+  color: var(--green-dark);
+}
+
+.payment-banner__content p {
+  font-size: 0.9rem;
+  color: var(--grey-600);
+  margin-top: 4px;
+}
+
+.payment-banner__note {
+  font-size: 0.8rem !important;
+  color: var(--grey) !important;
+  font-style: italic;
+  margin-top: 2px !important;
+}
+
+/* === Alert Dismiss === */
+.alert__dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.alert__dismiss:hover {
+  opacity: 1;
+}
+
+.alerts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* === CIS Summary in Detail Panel === */
+.cis-summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #fef3c7;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.worker-cis-info {
+  display: flex;
+  gap: 16px;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+/* === CIS Verification Section === */
+.cis-verify-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--grey-200);
+}
+
+.cis-verify-section h4 {
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.cis-verify-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+
+.cis-verify-status--verified {
+  background: var(--green-light);
+}
+
+.cis-verify-status--unverified {
+  background: #fef3c7;
+}
+
+.cis-verify-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* === Role Selector === */
+.role-selector {
+  display: flex;
+  gap: 4px;
+}
+
+/* === Payment Date Card === */
+.payment-date-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payment-date-card--past {
+  opacity: 0.5;
+}
+
+.payment-date-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.payment-date-card__info strong {
+  font-size: 0.95rem;
+}
+
 /* ============================================================
    RESPONSIVE — Tablet and Desktop
    ============================================================ */

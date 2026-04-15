@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { TRADES } from '../lib/utils';
 
 export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
@@ -8,6 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [trade, setTrade] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -43,13 +45,17 @@ export default function Login() {
       setError('Full name is required');
       return;
     }
+    if (!trade) {
+      setError('Please select your trade / role');
+      return;
+    }
 
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, trade: trade },
       },
     });
 
@@ -153,6 +159,18 @@ export default function Login() {
                 placeholder="John Smith"
                 required
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Trade / Role</label>
+              <select
+                value={trade}
+                onChange={(e) => setTrade(e.target.value)}
+                className="form-input"
+                required
+              >
+                <option value="">Select your trade...</option>
+                {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Email</label>
