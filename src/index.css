@@ -2314,13 +2314,13 @@ a {
 .approval-checkbox {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 5px;
+  padding: 5px 10px;
   border-radius: var(--radius);
-  border: 2px solid var(--grey-300);
+  border: 1.5px solid var(--grey-300);
   background: var(--bg-card);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 600;
   transition: all 0.15s ease;
   color: var(--text-secondary);
@@ -2372,10 +2372,10 @@ a {
 }
 
 .approval-checkbox__box {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  border: 2px solid currentColor;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1.5px solid currentColor;
   display: flex;
   align-items: center;
   justify-content: center;
