@@ -75,7 +75,13 @@ export default function Sidebar({ open, onClose }) {
     fetchBadges();
     // Refresh badges every 30 seconds
     const interval = setInterval(fetchBadges, 30000);
-    return () => clearInterval(interval);
+    // Also refresh instantly when a custom event fires
+    const handleRefresh = () => fetchBadges();
+    window.addEventListener('badges-refresh', handleRefresh);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('badges-refresh', handleRefresh);
+    };
   }, [profile]);
 
   const fetchBadges = async () => {
