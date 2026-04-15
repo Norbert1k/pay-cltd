@@ -143,7 +143,7 @@ export default function MyProfile() {
             )}
           </h3>
           {!paymentComplete && (
-            <p className="form-section__help">Complete all payment fields to enable &ldquo;Pay by Card&rdquo; on timesheets.</p>
+            <p className="form-section__help">Complete all payment fields to enable &ldquo;Pay by Bank Transfer&rdquo; on timesheets.</p>
           )}
           <div className="form-grid">
             <div className="form-group">

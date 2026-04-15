@@ -1325,6 +1325,43 @@ a {
   font-size: 0.85rem;
 }
 
+/* === Payment Totals === */
+.payment-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 0.9rem;
+}
+
+.payment-totals__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.payment-totals__item--total {
+  border-top: 1px solid var(--grey-200);
+  padding-top: 8px;
+  margin-top: 4px;
+  font-size: 0.95rem;
+}
+
+.payment-totals__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.payment-totals__dot--card {
+  background: var(--green);
+}
+
+.payment-totals__dot--other {
+  background: var(--purple);
+}
+
 /* === Filters === */
 .filters {
   display: flex;

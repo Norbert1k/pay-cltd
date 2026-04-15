@@ -124,7 +124,7 @@ export default function AdminTimesheets() {
         </select>
         <select value={filter.payment} onChange={(e) => setFilter(f => ({ ...f, payment: e.target.value }))} className="form-input form-input--sm">
           <option value="">All Payments</option>
-          <option value="card">Card</option>
+          <option value="card">Bank Transfer</option>
           <option value="other">Other</option>
         </select>
         <input type="date" value={filter.week} onChange={(e) => setFilter(f => ({ ...f, week: e.target.value }))} className="form-input form-input--sm" />

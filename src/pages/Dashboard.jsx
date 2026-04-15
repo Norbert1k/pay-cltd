@@ -142,7 +142,7 @@ export default function Dashboard() {
           </svg>
           <div>
             <strong>Complete your profile</strong>
-            <p>Add your payment details to enable &ldquo;Pay by Card&rdquo; option.</p>
+            <p>Add your payment details to enable &ldquo;Pay by Bank Transfer&rdquo; option.</p>
             <Link to="/profile" className="alert__link">Go to Profile &rarr;</Link>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { STATUS_COLORS, PAYMENT_COLORS, STATUS_LABELS } from '../lib/utils';
+import { STATUS_COLORS, PAYMENT_COLORS, STATUS_LABELS, PAYMENT_LABELS } from '../lib/utils';
 
 export function StatusPill({ status }) {
   const color = STATUS_COLORS[status] || '#808080';
@@ -18,7 +18,7 @@ export function StatusPill({ status }) {
 
 export function PaymentPill({ method }) {
   const color = PAYMENT_COLORS[method] || '#808080';
-  const label = method === 'card' ? 'Card' : 'Other';
+  const label = PAYMENT_LABELS[method] || method;
   return (
     <span className="pill" style={{ background: color + '18', color, borderColor: color + '40' }}>
       {label}

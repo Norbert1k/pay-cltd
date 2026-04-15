@@ -5,7 +5,7 @@ import { getNextSunday, formatDate, formatCurrency } from '../lib/utils';
 import { PageHeader, StatCard, StatusPill, PaymentPill, LoadingSpinner } from '../components/ui';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ workers: 0, thisWeek: 0, pending: 0, totalValue: 0, cardCount: 0, otherCount: 0 });
+  const [stats, setStats] = useState({ workers: 0, thisWeek: 0, pending: 0, totalValue: 0, cardCount: 0, otherCount: 0, cardTotal: 0, otherTotal: 0 });
   const [recent, setRecent] = useState([]);
   const [incompleteProfiles, setIncompleteProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +35,8 @@ export default function AdminDashboard() {
     const totalValue = thisWeek.reduce((sum, t) => sum + parseFloat(t.total_amount || 0), 0);
     const cardCount = thisWeek.filter(t => t.payment_method === 'card').length;
     const otherCount = thisWeek.filter(t => t.payment_method === 'other').length;
+    const cardTotal = thisWeek.filter(t => t.payment_method === 'card').reduce((sum, t) => sum + parseFloat(t.total_amount || 0), 0);
+    const otherTotal = thisWeek.filter(t => t.payment_method === 'other').reduce((sum, t) => sum + parseFloat(t.total_amount || 0), 0);
 
     setStats({
       workers: workerCount || 0,
@@ -43,6 +45,8 @@ export default function AdminDashboard() {
       totalValue,
       cardCount,
       otherCount,
+      cardTotal,
+      otherTotal,
     });
 
     // Recent 10 timesheets
@@ -130,23 +134,46 @@ export default function AdminDashboard() {
           <div className="payment-bar">
             {stats.thisWeek > 0 ? (
               <>
-                <div
-                  className="payment-bar__segment payment-bar__segment--card"
-                  style={{ width: `${(stats.cardCount / stats.thisWeek) * 100}%` }}
-                >
-                  {stats.cardCount > 0 && `Card (${stats.cardCount})`}
-                </div>
-                <div
-                  className="payment-bar__segment payment-bar__segment--other"
-                  style={{ width: `${(stats.otherCount / stats.thisWeek) * 100}%` }}
-                >
-                  {stats.otherCount > 0 && `Other (${stats.otherCount})`}
-                </div>
+                {stats.cardCount > 0 && (
+                  <div
+                    className="payment-bar__segment payment-bar__segment--card"
+                    style={{ width: `${(stats.cardCount / stats.thisWeek) * 100}%` }}
+                  >
+                    Bank Transfer ({stats.cardCount})
+                  </div>
+                )}
+                {stats.otherCount > 0 && (
+                  <div
+                    className="payment-bar__segment payment-bar__segment--other"
+                    style={{ width: `${(stats.otherCount / stats.thisWeek) * 100}%` }}
+                  >
+                    Other ({stats.otherCount})
+                  </div>
+                )}
               </>
             ) : (
               <div className="payment-bar__empty">No submissions this week</div>
             )}
           </div>
+          {stats.thisWeek > 0 && (
+            <div className="payment-totals">
+              {stats.cardCount > 0 && (
+                <div className="payment-totals__item">
+                  <span className="payment-totals__dot payment-totals__dot--card" />
+                  <span>Bank Transfer: <strong>{formatCurrency(stats.cardTotal)}</strong> ({stats.cardCount} timesheet{stats.cardCount !== 1 ? 's' : ''})</span>
+                </div>
+              )}
+              {stats.otherCount > 0 && (
+                <div className="payment-totals__item">
+                  <span className="payment-totals__dot payment-totals__dot--other" />
+                  <span>Other: <strong>{formatCurrency(stats.otherTotal)}</strong> ({stats.otherCount} timesheet{stats.otherCount !== 1 ? 's' : ''})</span>
+                </div>
+              )}
+              <div className="payment-totals__item payment-totals__item--total">
+                <span>Total: <strong>{formatCurrency(stats.totalValue)}</strong></span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

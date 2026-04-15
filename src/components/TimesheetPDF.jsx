@@ -74,7 +74,7 @@ export function generateTimesheetPDF(timesheet, profile, site, days) {
     ['Site', site?.site_name || 'N/A'],
     ['Address', [site?.site_address, site?.city, site?.postcode].filter(Boolean).join(', ') || 'N/A'],
     ['Approving Manager', timesheet.approving_manager || 'N/A'],
-    ['Payment Method', timesheet.payment_method === 'card' ? 'PAY BY CARD' : 'PAY BY OTHER'],
+    ['Payment Method', timesheet.payment_method === 'card' ? 'BANK TRANSFER' : 'OTHER'],
   ];
 
   projectDetails.forEach(([label, value]) => {

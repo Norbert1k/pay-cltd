@@ -72,6 +72,12 @@ export const PAYMENT_COLORS = {
   other: '#534AB7',
 };
 
+// Payment method labels
+export const PAYMENT_LABELS = {
+  card: 'Bank Transfer',
+  other: 'Other',
+};
+
 // Trades list (alphabetical)
 export const TRADES = [
   'Bricklayer',

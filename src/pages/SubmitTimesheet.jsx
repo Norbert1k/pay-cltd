@@ -324,7 +324,7 @@ export default function SubmitTimesheet() {
                   </svg>
                 </div>
                 <div>
-                  <strong>Pay by Card</strong>
+                  <strong>Pay by Bank Transfer</strong>
                   {profile?.payment_info_complete ? (
                     <p>Sort: {profile.sort_code} &bull; Acc: ****{profile.account_number?.slice(-4)}</p>
                   ) : (
@@ -352,7 +352,7 @@ export default function SubmitTimesheet() {
                 </div>
                 <div>
                   <strong>Pay by Other</strong>
-                  <p>Cash, bank transfer, or other method</p>
+                  <p>Cash or other payment method</p>
                 </div>
               </div>
             </label>
