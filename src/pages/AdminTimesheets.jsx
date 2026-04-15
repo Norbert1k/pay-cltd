@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { formatDate, formatDateCompact, formatCurrency, STATUSES, STATUS_LABELS, groupTimesheetsByWorker, canApprove } from '../lib/utils';
-import { PageHeader, ApprovalPipeline, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
+import { PageHeader, ApprovalPipeline, ApprovalControls, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 
 export default function AdminTimesheets() {
@@ -285,15 +285,13 @@ export default function AdminTimesheets() {
                                   )}
 
                                   <div className="ts-detail-card__actions">
-                                    <div className="status-btns">
-                                      {STATUSES.filter(s => s !== 'submitted').map(s => (
-                                        <button key={s} disabled={!canApprove(profile, s)}
-                                          className={`btn btn--sm ${ts.status === s ? 'btn--active' : 'btn--outline'} ${!canApprove(profile, s) ? 'btn--disabled' : ''}`}
-                                          onClick={() => handleStatusChange(ts.id, s)}>
-                                          {STATUS_LABELS[s]}
-                                        </button>
-                                      ))}
-                                    </div>
+                                    <ApprovalControls
+                                      status={ts.status}
+                                      onStatusChange={(newStatus) => handleStatusChange(ts.id, newStatus)}
+                                      canApproveAccounts={['admin', 'accountant', 'director'].includes(profile?.role)}
+                                      canApproveDirector={['admin', 'director'].includes(profile?.role)}
+                                      canMarkPaid={['admin', 'accountant', 'director'].includes(profile?.role)}
+                                    />
                                     <textarea value={statusNote} onChange={(e) => setStatusNote(e.target.value)}
                                       placeholder="Notes (visible to worker if queried)..." className="form-input" rows={2} />
                                   </div>
