@@ -1820,6 +1820,262 @@ a {
   font-size: 0.95rem;
 }
 
+/* === Approval Pipeline === */
+.approval-pipeline {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.approval-stage {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.approval-stage--complete {
+  background: var(--green-light);
+  color: var(--green);
+}
+
+.approval-stage--current {
+  background: #eff6ff;
+  color: #378ADD;
+  border: 1px solid #bfdbfe;
+}
+
+.approval-stage--pending {
+  background: var(--grey-light);
+  color: var(--grey);
+}
+
+.approval-stage--queried {
+  background: #fef2f2;
+  color: var(--red);
+  border: 1px solid #fecaca;
+}
+
+.approval-stage__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+}
+
+/* === Query Badge === */
+.query-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--red);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* === Query Warning Banner === */
+.query-warning-banner {
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-lg);
+  align-items: flex-start;
+}
+
+.query-warning-banner__badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--red);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.query-warning-banner strong {
+  color: var(--red);
+}
+
+.query-warning-banner p {
+  font-size: 0.85rem;
+  color: var(--grey-600);
+  margin-top: 2px;
+}
+
+/* === Period Selector === */
+.period-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.period-selector__label {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* === Week Tags === */
+.week-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  background: #eff6ff;
+  color: #378ADD;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* === Worker Group Row === */
+.worker-group-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.worker-group-row:hover {
+  background: #f9fafb;
+}
+
+/* === Timesheet Detail Card (expanded) === */
+.worker-detail-expanded {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #f9fafb;
+}
+
+.ts-detail-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 14px;
+  border: 1px solid var(--grey-200);
+}
+
+.ts-detail-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--grey-200);
+}
+
+.ts-detail-card__actions {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--grey-200);
+}
+
+.ts-detail-card__actions .status-btns {
+  margin-bottom: 8px;
+}
+
+/* === Send Alert Section === */
+.send-alert-section {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 14px;
+  border: 1px solid var(--grey-200);
+}
+
+.send-alert-section h4 {
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+/* === Pending Users === */
+.pending-users-section {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.pending-user-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pending-user-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pending-user-card__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* === Role Badge === */
+.role-badge {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.role-badge--worker {
+  background: #eff6ff;
+  color: #378ADD;
+}
+
+.role-badge--admin {
+  background: #fef2f2;
+  color: var(--red);
+}
+
+.role-badge--accountant {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role-badge--director {
+  background: var(--green-light);
+  color: var(--green);
+}
+
+/* === Disabled Button === */
+.btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* ============================================================
    RESPONSIVE — Tablet and Desktop
    ============================================================ */

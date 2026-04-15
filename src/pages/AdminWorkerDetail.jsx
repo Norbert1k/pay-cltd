@@ -150,8 +150,20 @@ export default function AdminWorkerDetail() {
               <span>Role</span>
               <div className="role-selector">
                 <button className={`btn btn--sm ${worker.role === 'worker' ? 'btn--active' : 'btn--outline'}`} onClick={() => handleRoleChange('worker')}>Worker</button>
+                <button className={`btn btn--sm ${worker.role === 'accountant' ? 'btn--active' : 'btn--outline'}`} onClick={() => handleRoleChange('accountant')}>Accountant</button>
+                <button className={`btn btn--sm ${worker.role === 'director' ? 'btn--active' : 'btn--outline'}`} onClick={() => handleRoleChange('director')}>Director</button>
                 <button className={`btn btn--sm ${worker.role === 'admin' ? 'btn--active' : 'btn--outline'}`} onClick={() => handleRoleChange('admin')}>Admin</button>
               </div>
+            </div>
+            <div className="detail-item">
+              <span>Account Status</span>
+              {worker.approval_status === 'pending' ? (
+                <span className="status-badge status-badge--amber">Pending Approval</span>
+              ) : worker.approval_status === 'approved' ? (
+                <span className="status-badge status-badge--green">Approved</span>
+              ) : (
+                <span className="status-badge status-badge--grey">Rejected</span>
+              )}
             </div>
             <div className="detail-item"><span>Total Timesheets</span><strong>{timesheets.length}</strong></div>
             <div className="detail-item"><span>Total Paid</span><strong className="text-green">{formatCurrency(totalPaid)}</strong></div>

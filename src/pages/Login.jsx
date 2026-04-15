@@ -62,7 +62,7 @@ export default function Login() {
     if (error) {
       setError(error.message);
     } else {
-      setMessage('Check your email to confirm your account, then log in.');
+      setMessage('Account created! Please check your email to verify, then wait for an admin to approve your access. You\'ll receive an email once approved.');
       setIsRegister(false);
     }
     setLoading(false);

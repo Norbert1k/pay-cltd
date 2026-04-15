@@ -66,7 +66,10 @@ export function AuthProvider({ children }) {
       loading,
       signOut,
       fetchProfile: refreshProfile,
-      isAdmin: profile?.role === 'admin',
+      isAdmin: ['admin', 'accountant', 'director'].includes(profile?.role),
+      isDirector: ['admin', 'director'].includes(profile?.role),
+      isAccountant: ['admin', 'accountant'].includes(profile?.role),
+      role: profile?.role,
     }}>
       {children}
     </AuthContext.Provider>

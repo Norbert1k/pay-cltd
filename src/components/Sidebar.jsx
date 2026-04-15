@@ -84,6 +84,8 @@ export default function Sidebar({ open, onClose }) {
 
   const links = isAdmin ? adminLinks : workerLinks;
 
+  const roleLabel = profile?.role === 'admin' ? 'Admin' : profile?.role === 'accountant' ? 'Accountant' : profile?.role === 'director' ? 'Director' : profile?.trade || 'Worker';
+
   return (
     <>
       {open && <div className="sidebar-overlay" onClick={onClose} />}
@@ -141,7 +143,7 @@ export default function Sidebar({ open, onClose }) {
             <div className="sidebar__user-info">
               <span className="sidebar__user-name">{profile?.full_name || 'User'}</span>
               <span className="sidebar__user-role">
-                {isAdmin ? 'Admin' : profile?.trade || 'Worker'}
+                {roleLabel}
               </span>
             </div>
           </div>

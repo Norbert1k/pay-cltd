@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState([]);
   const [nextPayment, setNextPayment] = useState(null);
+  const [queriedCount, setQueriedCount] = useState(0);
 
   const weekEnding = getNextSunday();
 
@@ -52,6 +53,14 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
         .limit(5);
       setAlerts(alertData || []);
+
+      // Count queried timesheets
+      const { count: qCount } = await supabase
+        .from('timesheets')
+        .select('*', { count: 'exact', head: true })
+        .eq('worker_id', profile.id)
+        .eq('status', 'queried');
+      setQueriedCount(qCount || 0);
 
       // Next payment date
       const today = new Date().toISOString().split('T')[0];
@@ -107,6 +116,18 @@ export default function Dashboard() {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Queried Timesheets Warning */}
+      {queriedCount > 0 && (
+        <div className="query-warning-banner">
+          <div className="query-warning-banner__badge">{queriedCount}</div>
+          <div>
+            <strong>You have {queriedCount} queried timesheet{queriedCount !== 1 ? 's' : ''}</strong>
+            <p>Please review and resubmit. Queried timesheets will not be processed for payment.</p>
+            <Link to="/timesheets" className="alert__link">View My Timesheets &rarr;</Link>
+          </div>
         </div>
       )}
 

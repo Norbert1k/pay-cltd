@@ -18,9 +18,48 @@ import AdminSites from './pages/AdminSites';
 import AdminPaymentDates from './pages/AdminPaymentDates';
 
 function ProtectedRoute() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   if (loading) return <LoadingSpinner />;
   if (!user) return <Navigate to="/login" replace />;
+
+  // Block pending or rejected users
+  if (profile && profile.approval_status === 'pending') {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-card__header">
+            <img src="/logo-dark.png" alt="City Construction" className="auth-card__logo" />
+            <h1 className="auth-card__title">Account Pending</h1>
+          </div>
+          <div className="alert alert--warning" style={{marginBottom: 16}}>
+            <div>
+              <strong>Your account is awaiting approval</strong>
+              <p>An administrator will review your account shortly. You'll receive an email once you've been granted access.</p>
+            </div>
+          </div>
+          <button className="btn btn--outline btn--full" onClick={signOut}>Log Out</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (profile && (profile.approval_status === 'rejected' || profile.status === 'inactive')) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-card__header">
+            <img src="/logo-dark.png" alt="City Construction" className="auth-card__logo" />
+            <h1 className="auth-card__title">Access Denied</h1>
+          </div>
+          <div className="auth-error" style={{marginBottom: 16}}>
+            Your account has been deactivated. Please contact your administrator.
+          </div>
+          <button className="btn btn--outline btn--full" onClick={signOut}>Log Out</button>
+        </div>
+      </div>
+    );
+  }
+
   return <AppLayout />;
 }
 

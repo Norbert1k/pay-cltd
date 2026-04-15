@@ -1,27 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { formatDate } from '../lib/utils';
+import { formatDate, ROLES } from '../lib/utils';
 import { PageHeader, LoadingSpinner, EmptyState } from '../components/ui';
 
 export default function AdminWorkers() {
+  const { profile: adminProfile } = useAuth();
   const [workers, setWorkers] = useState([]);
+  const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [tab, setTab] = useState('all');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchWorkers();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  const fetchWorkers = async () => {
+  const fetchAll = async () => {
+    // All users (not just workers)
     const { data } = await supabase
       .from('profiles')
       .select('*')
-      .eq('role', 'worker')
       .order('full_name');
 
-    // Get last submission for each worker
     if (data) {
       const enriched = await Promise.all(data.map(async (w) => {
         const { data: lastTs } = await supabase
@@ -33,7 +34,10 @@ export default function AdminWorkers() {
           .maybeSingle();
         return { ...w, lastSubmission: lastTs?.week_ending };
       }));
-      setWorkers(enriched);
+
+      // Split pending vs approved
+      setPendingUsers(enriched.filter(w => w.approval_status === 'pending'));
+      setWorkers(enriched.filter(w => w.approval_status !== 'pending'));
     }
     setLoading(false);
   };
@@ -41,35 +45,58 @@ export default function AdminWorkers() {
   const toggleStatus = async (worker) => {
     const newStatus = worker.status === 'active' ? 'inactive' : 'active';
     await supabase.from('profiles').update({ status: newStatus }).eq('id', worker.id);
-    fetchWorkers();
+    fetchAll();
+  };
+
+  const approveUser = async (userId) => {
+    await supabase.from('profiles').update({
+      approval_status: 'approved',
+      approved_by: adminProfile.id,
+      approved_at: new Date().toISOString(),
+    }).eq('id', userId);
+
+    // Create alert for user
+    await supabase.from('alerts').insert({
+      worker_id: userId,
+      type: 'general',
+      title: 'Account Approved',
+      message: 'Your account has been approved. You can now log in and submit timesheets.',
+      created_by: adminProfile.id,
+    });
+
+    fetchAll();
+  };
+
+  const rejectUser = async (userId) => {
+    await supabase.from('profiles').update({
+      approval_status: 'rejected',
+      approved_by: adminProfile.id,
+      approved_at: new Date().toISOString(),
+      status: 'inactive',
+    }).eq('id', userId);
+    fetchAll();
   };
 
   const handleExportCSV = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Trade', 'NI', 'UTR', 'Sort Code', 'Account Number', 'Status', 'Payment Complete', 'Last Submission'];
+    const headers = ['Name', 'Email', 'Phone', 'Trade', 'Role', 'NI', 'UTR', 'Status', 'CIS Rate', 'CIS Verified', 'Last Submission'];
     const rows = workers.map(w => [
-      w.full_name, w.email, w.phone || '', w.trade || '',
+      w.full_name, w.email, w.phone || '', w.trade || '', ROLES[w.role] || w.role,
       w.national_insurance || '', w.utr_number || '',
-      w.sort_code || '', w.account_number || '',
-      w.status, w.payment_info_complete ? 'Yes' : 'No',
+      w.status, w.cis_rate || '20', w.cis_verified ? 'Yes' : 'No',
       w.lastSubmission || 'Never',
     ]);
-
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'workers.csv';
-    a.click();
+    a.href = url; a.download = 'workers.csv'; a.click();
     URL.revokeObjectURL(url);
   };
 
   const filtered = workers.filter(w => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return w.full_name?.toLowerCase().includes(q) ||
-           w.email?.toLowerCase().includes(q) ||
-           w.trade?.toLowerCase().includes(q);
+    return w.full_name?.toLowerCase().includes(q) || w.email?.toLowerCase().includes(q) || w.trade?.toLowerCase().includes(q);
   });
 
   if (loading) return <LoadingSpinner />;
@@ -77,8 +104,8 @@ export default function AdminWorkers() {
   return (
     <div className="page">
       <PageHeader
-        title="Workers"
-        subtitle={`${workers.filter(w => w.status === 'active').length} active, ${workers.filter(w => w.status === 'inactive').length} inactive`}
+        title="Users & Workers"
+        subtitle={`${workers.filter(w => w.status === 'active').length} active, ${pendingUsers.length} pending approval`}
         actions={
           <button className="btn btn--sm btn--outline" onClick={handleExportCSV}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -90,18 +117,41 @@ export default function AdminWorkers() {
         }
       />
 
+      {/* Pending Approvals Banner */}
+      {pendingUsers.length > 0 && (
+        <div className="pending-users-section">
+          <h3 className="section__title">
+            <span className="query-badge" style={{marginRight: 8}}>{pendingUsers.length}</span>
+            New Users — Pending Approval
+          </h3>
+          <div className="card-list">
+            {pendingUsers.map(u => (
+              <div key={u.id} className="pending-user-card">
+                <div className="pending-user-card__info">
+                  <strong>{u.full_name}</strong>
+                  <span className="text-muted">{u.email}</span>
+                  <span className="text-sm">{u.trade || 'No trade selected'}</span>
+                </div>
+                <div className="pending-user-card__actions">
+                  <button className="btn btn--sm btn--green" onClick={() => approveUser(u.id)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                    Grant Access
+                  </button>
+                  <button className="btn btn--sm btn--outline-red" onClick={() => rejectUser(u.id)}>Reject</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
       <div className="filters">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="form-input form-input--sm"
-          placeholder="Search by name, email, or trade..."
-        />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} className="form-input form-input--sm" placeholder="Search by name, email, or trade..." />
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState title="No workers found" message="No workers match your search." />
+        <EmptyState title="No users found" message="No users match your search." />
       ) : (
         <>
           {/* Desktop Table */}
@@ -109,14 +159,7 @@ export default function AdminWorkers() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Trade</th>
-                  <th>NI</th>
-                  <th>CIS</th>
-                  <th>Status</th>
-                  <th>Payment Info</th>
-                  <th>Last Submission</th>
-                  <th>Actions</th>
+                  <th>Name</th><th>Trade</th><th>Role</th><th>NI</th><th>CIS</th><th>Status</th><th>Last Submission</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -127,34 +170,24 @@ export default function AdminWorkers() {
                       <br /><span className="text-muted text-sm">{w.email}</span>
                     </td>
                     <td>{w.trade || '-'}</td>
+                    <td>
+                      <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
+                    </td>
                     <td>{w.national_insurance || '-'}</td>
                     <td>
-                      {w.cis_verified ? (
-                        <span className="status-badge status-badge--green">{w.cis_rate}%</span>
-                      ) : (
+                      {w.cis_verified ?
+                        <span className="status-badge status-badge--green">{w.cis_rate}%</span> :
                         <span className="status-badge status-badge--amber">Unverified</span>
-                      )}
+                      }
                     </td>
                     <td>
-                      <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>
-                        {w.status}
-                      </span>
-                    </td>
-                    <td>
-                      {w.payment_info_complete ? (
-                        <span className="status-badge status-badge--green">Complete</span>
-                      ) : (
-                        <span className="status-badge status-badge--amber">Incomplete</span>
-                      )}
+                      <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
                     </td>
                     <td>{w.lastSubmission ? formatDate(w.lastSubmission) : 'Never'}</td>
                     <td>
                       <div className="action-btns">
                         <button className="btn btn--sm btn--outline" onClick={() => navigate(`/admin/workers/${w.id}`)}>View</button>
-                        <button
-                          className={`btn btn--sm ${w.status === 'active' ? 'btn--outline-red' : 'btn--green'}`}
-                          onClick={() => toggleStatus(w)}
-                        >
+                        <button className={`btn btn--sm ${w.status === 'active' ? 'btn--outline-red' : 'btn--green'}`} onClick={() => toggleStatus(w)}>
                           {w.status === 'active' ? 'Deactivate' : 'Activate'}
                         </button>
                       </div>
@@ -175,13 +208,10 @@ export default function AdminWorkers() {
                     <strong>{w.full_name}</strong>
                     <span className="text-muted text-sm">{w.trade || 'No trade'}</span>
                   </div>
-                  <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>
-                    {w.status}
-                  </span>
-                </div>
-                <div className="worker-card__details">
-                  <span>Payment: {w.payment_info_complete ? 'Complete' : 'Incomplete'}</span>
-                  <span>Last: {w.lastSubmission ? formatDate(w.lastSubmission) : 'Never'}</span>
+                  <div style={{display:'flex', gap: 4, flexDirection:'column', alignItems:'flex-end'}}>
+                    <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
+                    <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
+                  </div>
                 </div>
               </div>
             ))}
