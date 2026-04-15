@@ -13,6 +13,7 @@ export default function MyTimesheets() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ status: '', month: '' });
   const [justSubmitted, setJustSubmitted] = useState(location.state?.submitted);
+  const [expandedMonths, setExpandedMonths] = useState(new Set());
 
   useEffect(() => {
     if (profile) {
@@ -92,6 +93,22 @@ export default function MyTimesheets() {
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [filtered]);
 
+  // Auto-expand the most recent month on first load
+  useEffect(() => {
+    if (groupedByMonth.length > 0 && expandedMonths.size === 0) {
+      setExpandedMonths(new Set([groupedByMonth[0][0]]));
+    }
+  }, [groupedByMonth]);
+
+  const toggleMonth = (key) => {
+    setExpandedMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -148,53 +165,65 @@ export default function MyTimesheets() {
         />
       ) : (
         <div className="my-ts-list">
-          {groupedByMonth.map(([key, group]) => (
-            <div key={key} className="my-ts-month">
-              <div className="my-ts-month__header">
-                <h3>{group.label}</h3>
-                <span className="my-ts-month__total">{formatCurrency(group.total)}</span>
-              </div>
-              <div className="my-ts-month__items">
-                {group.timesheets.map(ts => (
-                  <div key={ts.id} className={`my-ts-row ${ts.status === 'queried' ? 'my-ts-row--queried' : ''}`}>
-                    <div className="my-ts-row__main">
-                      <div className="my-ts-row__left">
-                        <span className="my-ts-row__date">{formatDate(ts.week_ending)}</span>
-                        <span className="my-ts-row__site">{ts.sites?.site_name}</span>
-                      </div>
-                      <div className="my-ts-row__amount">{formatCurrency(ts.total_amount)}</div>
-                    </div>
-                    <div className="my-ts-row__meta">
-                      <div className="my-ts-row__field">
-                        <span className="my-ts-row__label">Status:</span>
-                        <ApprovalPipeline status={ts.status} />
-                      </div>
-                      <div className="my-ts-row__field">
-                        <span className="my-ts-row__label">Payment:</span>
-                        <PaymentPill method={ts.payment_method} />
-                      </div>
-                      <button className="btn btn--sm btn--outline" onClick={() => handleDownloadPDF(ts)}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Download
-                      </button>
-                    </div>
-                    {ts.status === 'queried' && ts.admin_notes && (
-                      <div className="my-ts-row__query">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                          <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-                        </svg>
-                        <span><strong>Query:</strong> {ts.admin_notes}</span>
-                      </div>
-                    )}
+          {groupedByMonth.map(([key, group]) => {
+            const isOpen = expandedMonths.has(key);
+            return (
+              <div key={key} className="my-ts-month">
+                <div className="my-ts-month__header" onClick={() => toggleMonth(key)}>
+                  <div className="my-ts-month__left">
+                    <svg className={`my-ts-month__chevron ${isOpen ? 'my-ts-month__chevron--open' : ''}`}
+                      width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                    <h3>{group.label}</h3>
+                    <span className="my-ts-month__count">{group.timesheets.length} timesheet{group.timesheets.length !== 1 ? 's' : ''}</span>
                   </div>
-                ))}
+                  <span className="my-ts-month__total">{formatCurrency(group.total)}</span>
+                </div>
+                {isOpen && (
+                  <div className="my-ts-month__items">
+                    {group.timesheets.map(ts => (
+                      <div key={ts.id} className={`my-ts-row ${ts.status === 'queried' ? 'my-ts-row--queried' : ''}`}>
+                        <div className="my-ts-row__main">
+                          <div className="my-ts-row__left">
+                            <span className="my-ts-row__date">{formatDate(ts.week_ending)}</span>
+                            <span className="my-ts-row__site">{ts.sites?.site_name}</span>
+                          </div>
+                          <div className="my-ts-row__amount">{formatCurrency(ts.total_amount)}</div>
+                        </div>
+                        <div className="my-ts-row__meta">
+                          <div className="my-ts-row__field">
+                            <span className="my-ts-row__label">Status:</span>
+                            <ApprovalPipeline status={ts.status} />
+                          </div>
+                          <div className="my-ts-row__field">
+                            <span className="my-ts-row__label">Payment:</span>
+                            <PaymentPill method={ts.payment_method} />
+                          </div>
+                          <button className="btn btn--sm btn--outline" onClick={() => handleDownloadPDF(ts)}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                              <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            Download
+                          </button>
+                        </div>
+                        {ts.status === 'queried' && ts.admin_notes && (
+                          <div className="my-ts-row__query">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                              <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                            <span><strong>Query:</strong> {ts.admin_notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
