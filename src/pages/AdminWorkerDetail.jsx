@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { formatDate, formatCurrency, TRADES } from '../lib/utils';
-import { PageHeader, StatusPill, PaymentPill, LoadingSpinner } from '../components/ui';
+import { PageHeader, ApprovalPipeline, PaymentPill, LoadingSpinner } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 
 export default function AdminWorkerDetail() {
@@ -178,27 +178,42 @@ export default function AdminWorkerDetail() {
         {timesheets.length === 0 ? (
           <p className="text-muted">No timesheets submitted.</p>
         ) : (
-          <div className="card-list">
+          <div className="my-ts-month__items">
             {timesheets.map(ts => (
-              <div key={ts.id} className="timesheet-card">
-                <div className="timesheet-card__top">
-                  <span className="timesheet-card__date">{formatDate(ts.week_ending)}</span>
-                  <StatusPill status={ts.status} />
+              <div key={ts.id} className={`my-ts-row ${ts.status === 'queried' ? 'my-ts-row--queried' : ''}`}>
+                <div className="my-ts-row__main">
+                  <div className="my-ts-row__left">
+                    <span className="my-ts-row__date">{formatDate(ts.week_ending)}</span>
+                    <span className="my-ts-row__site">{ts.sites?.site_name}</span>
+                  </div>
+                  <div className="my-ts-row__amount">{formatCurrency(ts.total_amount)}</div>
                 </div>
-                <div className="timesheet-card__details">
-                  <span>{ts.sites?.site_name}</span>
-                  <PaymentPill method={ts.payment_method} />
-                </div>
-                <div className="timesheet-card__bottom">
-                  <span className="timesheet-card__amount">{formatCurrency(ts.total_amount)}</span>
+                <div className="my-ts-row__meta">
+                  <div className="my-ts-row__field">
+                    <span className="my-ts-row__label">Status:</span>
+                    <ApprovalPipeline status={ts.status} />
+                  </div>
+                  <div className="my-ts-row__field">
+                    <span className="my-ts-row__label">Payment:</span>
+                    <PaymentPill method={ts.payment_method} />
+                  </div>
                   <button className="btn btn--sm btn--outline" onClick={() => handleDownloadPDF(ts)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                       <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
-                    PDF
+                    Download
                   </button>
                 </div>
+                {ts.status === 'queried' && ts.admin_notes && (
+                  <div className="my-ts-row__query">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <span><strong>Query:</strong> {ts.admin_notes}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
