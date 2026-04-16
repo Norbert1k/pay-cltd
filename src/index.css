@@ -2824,10 +2824,45 @@ a {
   color: var(--text-muted);
 }
 
+.my-ts-row__amount-block {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.my-ts-row__amount-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.my-ts-row__amount-label--due {
+  color: var(--red);
+}
+
+.my-ts-row__amount-label--paid {
+  color: var(--green);
+}
+
 .my-ts-row__amount {
   font-weight: 700;
   font-size: 1.05rem;
+}
+
+.my-ts-row__amount--due {
+  color: var(--red);
+}
+
+.my-ts-row__amount--paid {
   color: var(--green);
+}
+
+.my-ts-row__actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .my-ts-row__meta {
@@ -2992,7 +3027,7 @@ a {
     align-items: flex-start;
     gap: 6px;
   }
-  .my-ts-row__meta .btn {
+  .my-ts-row__actions {
     margin-left: 0;
     align-self: flex-end;
   }
