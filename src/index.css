@@ -1690,6 +1690,16 @@ a {
   margin-left: 2px;
 }
 
+/* === CIS Status Banner (My Profile) === */
+.cis-status-banner {
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+}
+
 .payment-card {
   display: block;
   border: 2px solid var(--grey-200);
