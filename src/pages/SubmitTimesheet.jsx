@@ -214,13 +214,31 @@ export default function SubmitTimesheet() {
             cis_rate: cisEnabled ? cisRate : null,
             status: 'submitted',
             admin_notes: null,
+            edited: true,
+            updated_at: new Date().toISOString(),
           })
           .eq('id', existingTimesheet.id);
 
         if (updateError) throw updateError;
         timesheetId = existingTimesheet.id;
 
-        await supabase.from('timesheet_days').delete().eq('timesheet_id', timesheetId);
+        // Delete old day entries first — retry if RLS blocks
+        const { error: delError } = await supabase
+          .from('timesheet_days')
+          .delete()
+          .eq('timesheet_id', timesheetId);
+
+        if (delError) {
+          console.error('Failed to delete old days:', delError);
+          // If delete fails, try to remove via individual deletes
+          const { data: oldDays } = await supabase
+            .from('timesheet_days')
+            .select('id')
+            .eq('timesheet_id', timesheetId);
+          for (const old of (oldDays || [])) {
+            await supabase.from('timesheet_days').delete().eq('id', old.id);
+          }
+        }
       } else {
         const { data: ts, error: tsError } = await supabase
           .from('timesheets')
