@@ -1906,6 +1906,16 @@ a {
   border-radius: 50%;
   background: #378ADD;
 }
+
+.week-strip__sunday-label {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: 0.4px;
+}
 .cis-status-banner {
   background: var(--bg-page);
   border: 1px solid var(--border-color);
