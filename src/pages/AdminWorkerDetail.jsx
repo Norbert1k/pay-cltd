@@ -149,7 +149,7 @@ export default function AdminWorkerDetail() {
                 <span>Verified — can pay by Bank Transfer</span>
                 <button className="btn btn--sm btn--outline" onClick={handleUnverifyPayment}>Unverify</button>
               </div>
-            ) : worker.national_insurance && worker.sort_code && worker.account_number && worker.account_name ? (
+            ) : worker.national_insurance && worker.utr_number && worker.sort_code && worker.account_number && worker.account_name ? (
               <div className="cis-verify-status cis-verify-status--unverified">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BA7517" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
