@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { getNextSunday, DAYS, formatCurrency, formatDate } from '../lib/utils';
@@ -20,8 +20,9 @@ const defaultDayData = () => ({
 export default function SubmitTimesheet() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [weekEnding, setWeekEnding] = useState(getNextSunday());
+  const [weekEnding, setWeekEnding] = useState(location.state?.weekEnding || getNextSunday());
   const [siteId, setSiteId] = useState('');
   const [approvingManager, setApprovingManager] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('other');
@@ -46,6 +47,14 @@ export default function SubmitTimesheet() {
   useEffect(() => {
     if (profile) checkExisting();
   }, [weekEnding, profile]);
+
+  // Auto-enter edit mode if navigated here from "Edit" button
+  useEffect(() => {
+    if (location.state?.weekEnding && existingTimesheet && canEdit && !editMode) {
+      loadForEdit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingTimesheet]);
 
   const fetchSites = async () => {
     const { data } = await supabase.from('sites').select('*').eq('active', true).order('site_name');
