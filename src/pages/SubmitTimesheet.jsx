@@ -421,7 +421,7 @@ export default function SubmitTimesheet() {
         <div className="form-section">
           <h3 className="form-section__title">Payment Method</h3>
           <div className="payment-cards">
-            <label className={`payment-card ${paymentMethod === 'card' ? 'payment-card--active' : ''}`}>
+            <label className={`payment-card ${paymentMethod === 'card' ? 'payment-card--selected' : ''}`}>
               <input type="radio" name="payment" value="card" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} />
               <div className="payment-card__content">
                 <div className="payment-card__icon payment-card__icon--card">
@@ -435,7 +435,7 @@ export default function SubmitTimesheet() {
                 </div>
               </div>
             </label>
-            <label className={`payment-card ${paymentMethod === 'other' ? 'payment-card--active' : ''}`}>
+            <label className={`payment-card ${paymentMethod === 'other' ? 'payment-card--selected payment-card--other' : ''}`}>
               <input type="radio" name="payment" value="other" checked={paymentMethod === 'other'} onChange={() => setPaymentMethod('other')} />
               <div className="payment-card__content">
                 <div className="payment-card__icon payment-card__icon--other">
