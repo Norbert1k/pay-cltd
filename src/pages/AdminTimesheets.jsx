@@ -158,29 +158,34 @@ export default function AdminTimesheets() {
     window.dispatchEvent(new Event('badges-refresh'));
   };
 
+  const DAY_SORT_ORDER = { monday: 0, tuesday: 1, wednesday: 2, thursday: 3, friday: 4, saturday: 5, sunday: 6 };
+
   const handleExpandWorker = async (workerId) => {
     if (expandedWorker === workerId) { setExpandedWorker(null); return; }
     setExpandedWorker(workerId);
-    // Fetch day data for all timesheets of this worker in current period
     const workerTs = timesheets.filter(t => (t.worker_id || t.profiles?.id) === workerId);
     const dayMap = {};
     for (const ts of workerTs) {
-      const { data } = await supabase.from('timesheet_days').select('*').eq('timesheet_id', ts.id).order('day_of_week');
-      dayMap[ts.id] = data || [];
+      const { data } = await supabase.from('timesheet_days').select('*').eq('timesheet_id', ts.id);
+      // Sort Mon → Sun
+      const sorted = (data || []).sort((a, b) => (DAY_SORT_ORDER[a.day_of_week] ?? 9) - (DAY_SORT_ORDER[b.day_of_week] ?? 9));
+      dayMap[ts.id] = sorted;
     }
     setExpandedDays(dayMap);
   };
 
   const handleDownloadPDF = async (ts) => {
     const { data: days } = await supabase.from('timesheet_days').select('*').eq('timesheet_id', ts.id);
-    generateTimesheetPDF(ts, ts.profiles, ts.sites, days || []);
+    const sorted = (days || []).sort((a, b) => (DAY_SORT_ORDER[a.day_of_week] ?? 9) - (DAY_SORT_ORDER[b.day_of_week] ?? 9));
+    generateTimesheetPDF(ts, ts.profiles, ts.sites, sorted);
   };
 
   // Download all timesheets for period as individual PDFs (grouped)
   const handleDownloadAll = async () => {
     for (const ts of filtered) {
       const { data: days } = await supabase.from('timesheet_days').select('*').eq('timesheet_id', ts.id);
-      generateTimesheetPDF(ts, ts.profiles, ts.sites, days || []);
+      const sorted = (days || []).sort((a, b) => (DAY_SORT_ORDER[a.day_of_week] ?? 9) - (DAY_SORT_ORDER[b.day_of_week] ?? 9));
+      generateTimesheetPDF(ts, ts.profiles, ts.sites, sorted);
     }
   };
 
