@@ -1690,7 +1690,222 @@ a {
   margin-left: 2px;
 }
 
-/* === CIS Status Banner (My Profile) === */
+/* === Week Picker v2 === */
+.week-picker-v2 {
+  margin-bottom: 20px;
+}
+
+.week-picker-v2__quick {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.week-chip {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.week-chip:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.week-chip--active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #ffffff;
+}
+
+.week-chip--active:hover {
+  color: #ffffff;
+}
+
+.week-chip--other {
+  background: transparent;
+  border-style: dashed;
+}
+
+.week-picker-v2__list {
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin-bottom: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.week-picker-v2__option {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.week-picker-v2__option:hover {
+  background: var(--bg-hover);
+}
+
+.week-picker-v2__option--active {
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .week-picker-v2__option--active {
+  background: #1a2e18;
+  color: #80c480;
+}
+
+.week-picker-v2__badge {
+  font-size: 0.7rem;
+  background: var(--green);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.week-picker-v2__display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.week-picker-v2__nav {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.week-picker-v2__nav:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.week-picker-v2__center {
+  text-align: center;
+  flex: 1;
+}
+
+.week-picker-v2__range {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.week-picker-v2__month {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* === Week Strip (7 day preview) === */
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  background: var(--bg-page);
+  border-radius: var(--radius);
+  padding: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.week-strip__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  min-height: 50px;
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.week-strip__day--sunday {
+  background: var(--green-light);
+  border-color: rgba(68, 138, 64, 0.2);
+}
+
+[data-theme="dark"] .week-strip__day--sunday {
+  background: #1a2e18;
+  border-color: #2a4a28;
+}
+
+.week-strip__day--today {
+  background: #eff6ff;
+  border-color: #378ADD;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .week-strip__day--today {
+  background: #151e2e;
+  border-color: #378ADD;
+}
+
+.week-strip__day--today.week-strip__day--sunday {
+  background: var(--green-light);
+  border-color: var(--green);
+}
+
+.week-strip__dow {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.week-strip__date {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.week-strip__today-dot {
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #378ADD;
+}
 .cis-status-banner {
   background: var(--bg-page);
   border: 1px solid var(--border-color);
