@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { formatDate, formatCurrency, STATUSES, STATUS_LABELS } from '../lib/utils';
-import { PageHeader, ApprovalPipeline, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
+import { PageHeader, StatusPill, ApprovalPipeline, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 
 export default function MyTimesheets() {
@@ -14,6 +14,7 @@ export default function MyTimesheets() {
   const [filter, setFilter] = useState({ status: '', month: '' });
   const [justSubmitted, setJustSubmitted] = useState(location.state?.submitted);
   const [expandedMonths, setExpandedMonths] = useState(new Set());
+  const initialExpanded = useRef(false);
 
   useEffect(() => {
     if (profile) {
@@ -93,10 +94,11 @@ export default function MyTimesheets() {
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [filtered]);
 
-  // Auto-expand the most recent month on first load
+  // Auto-expand the most recent month on first load only
   useEffect(() => {
-    if (groupedByMonth.length > 0 && expandedMonths.size === 0) {
+    if (groupedByMonth.length > 0 && !initialExpanded.current) {
       setExpandedMonths(new Set([groupedByMonth[0][0]]));
+      initialExpanded.current = true;
     }
   }, [groupedByMonth]);
 
@@ -194,6 +196,10 @@ export default function MyTimesheets() {
                         <div className="my-ts-row__meta">
                           <div className="my-ts-row__field">
                             <span className="my-ts-row__label">Status:</span>
+                            <StatusPill status={ts.status} />
+                          </div>
+                          <div className="my-ts-row__field">
+                            <span className="my-ts-row__label">Approval:</span>
                             <ApprovalPipeline status={ts.status} />
                           </div>
                           <div className="my-ts-row__field">
