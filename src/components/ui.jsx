@@ -18,13 +18,13 @@ export function StatusPill({ status }) {
 }
 
 // 3-stage approval pipeline — read-only display version
-export function ApprovalPipeline({ status }) {
+export function ApprovalPipeline({ status, compact }) {
   const order = ['submitted', 'approved_accounts', 'approved_director', 'paid'];
   const currentIdx = order.indexOf(status);
 
   if (status === 'queried') {
     return (
-      <div className="approval-pipeline">
+      <div className={`approval-pipeline ${compact ? 'approval-pipeline--compact' : ''}`}>
         <div className="approval-box approval-box--queried">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -38,7 +38,7 @@ export function ApprovalPipeline({ status }) {
 
   if (status === 'submitted') {
     return (
-      <div className="approval-pipeline">
+      <div className={`approval-pipeline ${compact ? 'approval-pipeline--compact' : ''}`}>
         <div className="approval-box approval-box--submitted">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 5v14M5 12l7-7 7 7" />
@@ -59,7 +59,7 @@ export function ApprovalPipeline({ status }) {
   ];
 
   return (
-    <div className="approval-pipeline">
+    <div className={`approval-pipeline ${compact ? 'approval-pipeline--compact' : ''}`}>
       {stages.map((stage) => {
         const stageIdx = order.indexOf(stage.key);
         const isComplete = stageIdx <= currentIdx;
