@@ -1,87 +1,131 @@
 import { useState, useEffect } from 'react';
-import { getNextSunday, formatDate } from '../lib/utils';
 
-// Format short date like "Mon 13"
-function shortDay(d) {
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
+// ========================================================================
+// Pure date helpers — all using UTC to avoid any timezone issues
+// ========================================================================
+
+// Parse YYYY-MM-DD into {y, m, d} integer triple (no Date object needed)
+function parseYMD(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return { y, m, d };
 }
 
-// Snap any date to the Sunday of that week (end of that week, Mon-Sun)
+// Format {y, m, d} to YYYY-MM-DD
+function formatYMD({ y, m, d }) {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+// Get day of week for a date string (0=Sun, 1=Mon, ... 6=Sat)
+function getDayOfWeek(dateStr) {
+  const { y, m, d } = parseYMD(dateStr);
+  // Use UTC to avoid timezone drift
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+// Add N days to a date string and return new YYYY-MM-DD
+function addDays(dateStr, n) {
+  const { y, m, d } = parseYMD(dateStr);
+  const utc = new Date(Date.UTC(y, m - 1, d));
+  utc.setUTCDate(utc.getUTCDate() + n);
+  return `${utc.getUTCFullYear()}-${String(utc.getUTCMonth() + 1).padStart(2, '0')}-${String(utc.getUTCDate()).padStart(2, '0')}`;
+}
+
+// Snap ANY date to the Sunday of that Mon-Sun week
+// e.g. Thu 16 Apr → Sun 19 Apr; Sat 18 Apr → Sun 19 Apr; Sun 19 Apr → Sun 19 Apr
 function snapToSunday(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  const day = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
-  // If already Sunday, keep it
-  if (day === 0) return d.toISOString().split('T')[0];
-  // Otherwise advance to next Sunday (7 - day)
-  d.setDate(d.getDate() + (7 - day));
-  return d.toISOString().split('T')[0];
+  const day = getDayOfWeek(dateStr); // 0=Sun ... 6=Sat
+  if (day === 0) return dateStr;
+  return addDays(dateStr, 7 - day);
 }
 
-// Get Monday-to-Sunday array of days, where sundayStr is the Sunday ending the week
-function getWeekDays(sundayStr) {
-  const sunday = new Date(sundayStr + 'T00:00:00');
+// Get today as YYYY-MM-DD (local time)
+function todayStr() {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
+// Get this week's ending Sunday (the upcoming Sunday, or today if it's Sunday)
+function getThisSunday() {
+  return snapToSunday(todayStr());
+}
+
+// Get array of 7 YYYY-MM-DD strings, Monday through Sunday, given any Sunday
+function getMonToSun(sundayStr) {
+  // Verify it's actually Sunday; if not, snap first
+  const safeSunday = snapToSunday(sundayStr);
   const days = [];
-  const monday = new Date(sunday);
-  monday.setDate(sunday.getDate() - 6);
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    days.push(d);
+  // Monday = Sunday - 6 days
+  for (let i = 6; i >= 0; i--) {
+    days.push(addDays(safeSunday, -i));
   }
-  return days;
+  return days; // [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
 }
 
-// Shift week by N weeks (always snaps result to Sunday)
-function shiftWeek(sundayStr, weeks) {
-  const d = new Date(sundayStr + 'T00:00:00');
-  d.setDate(d.getDate() + (weeks * 7));
-  return snapToSunday(d.toISOString().split('T')[0]);
+// Format date for display: "12 Apr 2026"
+function formatLong(dateStr) {
+  const { y, m, d } = parseYMD(dateStr);
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${d} ${MONTHS[m - 1]} ${y}`;
 }
 
+// Format date short: "12 Apr"
+function formatShort(dateStr) {
+  const { m, d } = parseYMD(dateStr);
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${d} ${MONTHS[m - 1]}`;
+}
+
+const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']; // Mon..Sun (for labels)
+
+// ========================================================================
+// Component
+// ========================================================================
 export default function WeekPicker({ value, onChange }) {
-  // Ensure initial value is always a Sunday
-  const [weekEnding, setWeekEnding] = useState(() => {
-    const initial = value || getNextSunday();
-    return snapToSunday(initial);
-  });
+  const [weekEnding, setWeekEnding] = useState(() => snapToSunday(value || getThisSunday()));
   const [showPicker, setShowPicker] = useState(false);
 
+  // Sync with incoming value prop (always snap)
   useEffect(() => {
     if (value) {
       const snapped = snapToSunday(value);
       if (snapped !== weekEnding) setWeekEnding(snapped);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
+  // Emit changes upward
   useEffect(() => {
     onChange(weekEnding);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekEnding]);
 
-  // Wrapper: always ensures weekEnding is a Sunday
-  const setWeek = (dateStr) => setWeekEnding(snapToSunday(dateStr));
+  const setWeek = (sundayStr) => setWeekEnding(snapToSunday(sundayStr));
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = todayStr();
+  const thisSunday = getThisSunday();
+  const lastSunday = addDays(thisSunday, -7);
+  const nextSunday = addDays(thisSunday, 7);
 
-  const currentWeek = getNextSunday();
-  const isCurrentWeek = weekEnding === currentWeek;
-  const lastWeek = shiftWeek(currentWeek, -1);
-  const nextWeek = shiftWeek(currentWeek, 1);
+  // Mon-Sun array of date strings for the selected week
+  const weekDays = getMonToSun(weekEnding); // [Mon, Tue, ..., Sun]
+  const mondayStr = weekDays[0];
+  const sundayStr = weekDays[6];
 
-  const weekDays = getWeekDays(weekEnding);
-  const monday = weekDays[0];
-  const sunday = weekDays[6];
+  const isSelected = (s) => weekEnding === s;
 
-  const goBack = () => setWeek(shiftWeek(weekEnding, -1));
-  const goForward = () => setWeek(shiftWeek(weekEnding, 1));
+  const goBack = () => setWeek(addDays(weekEnding, -7));
+  const goForward = () => setWeek(addDays(weekEnding, 7));
 
-  // Generate last 6 weeks + next 2 weeks for quick select
-  const quickSelectWeeks = [];
-  for (let i = -6; i <= 2; i++) {
-    quickSelectWeeks.push(shiftWeek(currentWeek, i));
+  // Build list of selectable weeks (last 6 + this + next 2)
+  const pickerWeeks = [];
+  for (let i = 2; i >= -6; i--) {
+    pickerWeeks.push(addDays(thisSunday, i * 7));
   }
 
-  const monthYear = sunday.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  // Month/year label for the selected week — use the Sunday
+  const { m, y } = parseYMD(sundayStr);
+  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthYear = `${MONTH_NAMES[m - 1]} ${y}`;
 
   return (
     <div className="week-picker-v2">
@@ -89,18 +133,18 @@ export default function WeekPicker({ value, onChange }) {
         Which week are you submitting for? <span className="required">*</span>
       </label>
 
-      {/* Quick select buttons */}
+      {/* Quick select chips */}
       <div className="week-picker-v2__quick">
-        <button type="button" className={`week-chip ${weekEnding === lastWeek ? 'week-chip--active' : ''}`}
-          onClick={() => setWeek(lastWeek)}>
+        <button type="button" className={`week-chip ${isSelected(lastSunday) ? 'week-chip--active' : ''}`}
+          onClick={() => setWeek(lastSunday)}>
           Last Week
         </button>
-        <button type="button" className={`week-chip ${isCurrentWeek ? 'week-chip--active' : ''}`}
-          onClick={() => setWeek(currentWeek)}>
+        <button type="button" className={`week-chip ${isSelected(thisSunday) ? 'week-chip--active' : ''}`}
+          onClick={() => setWeek(thisSunday)}>
           This Week
         </button>
-        <button type="button" className={`week-chip ${weekEnding === nextWeek ? 'week-chip--active' : ''}`}
-          onClick={() => setWeek(nextWeek)}>
+        <button type="button" className={`week-chip ${isSelected(nextSunday) ? 'week-chip--active' : ''}`}
+          onClick={() => setWeek(nextSunday)}>
           Next Week
         </button>
         <button type="button" className="week-chip week-chip--other" onClick={() => setShowPicker(!showPicker)}>
@@ -108,42 +152,40 @@ export default function WeekPicker({ value, onChange }) {
         </button>
       </div>
 
-      {/* Other week picker dropdown */}
+      {/* Other weeks list */}
       {showPicker && (
         <div className="week-picker-v2__list">
-          <p className="text-sm text-muted" style={{marginBottom: 8}}>Select any week:</p>
-          {quickSelectWeeks.reverse().map(w => {
-            const days = getWeekDays(w);
-            const label = `${shortDay(days[0])} – ${shortDay(days[6])} ${days[6].toLocaleDateString('en-GB', { month: 'short' })}`;
-            const isSelected = w === weekEnding;
-            const isCurrent = w === currentWeek;
+          <p className="text-sm text-muted" style={{ marginBottom: 8 }}>Select any week:</p>
+          {pickerWeeks.map(w => {
+            const mon = addDays(w, -6);
+            const label = `${formatShort(mon)} – ${formatShort(w)}`;
+            const selected = isSelected(w);
+            const isThis = w === thisSunday;
             return (
               <button type="button" key={w}
-                className={`week-picker-v2__option ${isSelected ? 'week-picker-v2__option--active' : ''}`}
+                className={`week-picker-v2__option ${selected ? 'week-picker-v2__option--active' : ''}`}
                 onClick={() => { setWeek(w); setShowPicker(false); }}>
                 <span>{label}</span>
-                {isCurrent && <span className="week-picker-v2__badge">This week</span>}
+                {isThis && <span className="week-picker-v2__badge">This week</span>}
               </button>
             );
           })}
         </div>
       )}
 
-      {/* Selected week display */}
+      {/* Display range */}
       <div className="week-picker-v2__display">
         <button type="button" className="week-picker-v2__nav" onClick={goBack} title="Previous week">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-
         <div className="week-picker-v2__center">
           <div className="week-picker-v2__range">
-            {formatDate(monday.toISOString().split('T')[0])} &mdash; {formatDate(sunday.toISOString().split('T')[0])}
+            {formatLong(mondayStr)} &mdash; {formatLong(sundayStr)}
           </div>
           <div className="week-picker-v2__month">{monthYear}</div>
         </div>
-
         <button type="button" className="week-picker-v2__nav" onClick={goForward} title="Next week">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
@@ -151,17 +193,16 @@ export default function WeekPicker({ value, onChange }) {
         </button>
       </div>
 
-      {/* Day strip — Monday to Sunday */}
+      {/* Day strip — always Mon to Sun */}
       <div className="week-strip">
-        {weekDays.map((d, i) => {
-          const isToday = d.toDateString() === new Date().toDateString();
-          const isSunday = d.getDay() === 0;
-          // Fixed labels for clarity (Mon, Tue, Wed, Thu, Fri, Sat, Sun)
-          const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+        {weekDays.map((dateStr, i) => {
+          const isToday = dateStr === today;
+          const isSunday = i === 6;
           return (
-            <div key={i} className={`week-strip__day ${isToday ? 'week-strip__day--today' : ''} ${isSunday ? 'week-strip__day--sunday' : ''}`}>
+            <div key={dateStr}
+              className={`week-strip__day ${isToday ? 'week-strip__day--today' : ''} ${isSunday ? 'week-strip__day--sunday' : ''}`}>
               <span className="week-strip__dow">{DAY_LETTERS[i]}</span>
-              <span className="week-strip__date">{d.getDate()}</span>
+              <span className="week-strip__date">{parseYMD(dateStr).d}</span>
               {isSunday && <span className="week-strip__sunday-label">END</span>}
               {isToday && <span className="week-strip__today-dot" />}
             </div>
