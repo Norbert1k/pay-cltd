@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { formatDate, formatCurrency, STATUSES, STATUS_LABELS } from '../lib/utils';
@@ -9,6 +9,7 @@ import { generateTimesheetPDF } from '../components/TimesheetPDF';
 export default function MyTimesheets() {
   const { profile } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [timesheets, setTimesheets] = useState([]);
   const [paymentDates, setPaymentDates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,16 @@ export default function MyTimesheets() {
   const getPaymentDateForTimesheet = (ts) => {
     // The timesheet gets paid on the payment date whose cutoff >= week_ending
     return paymentDates.find(pd => pd.cutoff_date >= ts.week_ending);
+  };
+
+  // Check if worker can still edit a timesheet
+  const canEditTimesheet = (ts) => {
+    if (ts.status === 'paid') return false;
+    if (ts.status === 'queried') return true;
+    const pd = getPaymentDateForTimesheet(ts);
+    if (!pd) return true;
+    const cutoff = new Date(pd.cutoff_date + 'T23:59:59');
+    return new Date() <= cutoff;
   };
 
   const handleDownloadPDF = async (ts) => {
@@ -227,6 +238,15 @@ export default function MyTimesheets() {
                             </svg>
                             Download
                           </button>
+                          {canEditTimesheet(ts) && (
+                            <button className="btn btn--sm btn--primary" onClick={() => navigate('/submit', { state: { weekEnding: ts.week_ending } })}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                              Edit
+                            </button>
+                          )}
                         </div>
                         {ts.status === 'queried' && ts.admin_notes && (
                           <div className="my-ts-row__query">
