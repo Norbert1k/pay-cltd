@@ -102,8 +102,8 @@ export const PAYMENT_LABELS = {
 // ============================================================
 export const TRADES = [
   'Bricklayer', 'Carpenter', 'Cleaner', 'Decorator', 'Electrician',
-  'Groundworker', 'Labourer', 'Plasterer', 'Plumber', 'Renderer',
-  'Site Assistant', 'Site Manager', 'Tape & Jointer', 'Tiler', 'Other',
+  'Groundworker', 'Labourer', 'Plasterer', 'Plumber', 'Project Manager',
+  'Renderer', 'Site Assistant', 'Site Manager', 'Tape & Jointer', 'Tiler', 'Other',
 ];
 
 // ============================================================
