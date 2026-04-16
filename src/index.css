@@ -1926,6 +1926,53 @@ a {
 }
 
 /* === Profile Photo Section (Admin Worker Detail) === */
+
+/* Worker small avatar (Admin Timesheets rows) */
+.worker-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--green-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--green);
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.worker-avatar-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Edited badge */
+.edited-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  vertical-align: middle;
+}
+
+[data-theme="dark"] .edited-badge {
+  background: #2a2510;
+  color: #d4a54a;
+  border-color: #3e3418;
+}
+
 .photo-section {
   display: flex;
   align-items: center;
