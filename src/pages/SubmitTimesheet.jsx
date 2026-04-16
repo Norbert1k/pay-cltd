@@ -422,7 +422,7 @@ export default function SubmitTimesheet() {
         <div className="form-section">
           <h3 className="form-section__title">Payment Method</h3>
           {(() => {
-            const hasPaymentDetails = profile?.national_insurance && profile?.sort_code && profile?.account_number && profile?.account_name;
+            const hasPaymentDetails = profile?.national_insurance && profile?.utr_number && profile?.sort_code && profile?.account_number && profile?.account_name;
             const isVerified = profile?.payment_details_verified;
             const bankTransferAllowed = hasPaymentDetails && isVerified;
 
