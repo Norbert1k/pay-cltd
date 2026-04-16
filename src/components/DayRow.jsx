@@ -6,7 +6,7 @@ export default function DayRow({ day, data, onChange, expanded, onToggle }) {
   const net = (parseFloat(data.gross_amount) || 0) - (parseFloat(data.deductions) || 0);
 
   const handleField = (field, value) => {
-    onChange(day, { ...data, [field]: value });
+    onChange({ ...data, [field]: value });
   };
 
   return (
@@ -47,19 +47,21 @@ export default function DayRow({ day, data, onChange, expanded, onToggle }) {
         <div className="day-row__fields">
           <div className="day-row__row">
             <div className="day-row__field">
-              <label>Start</label>
+              <label>Start <span className="required">*</span></label>
               <input
                 type="time"
                 value={data.start_time || ''}
                 onChange={(e) => handleField('start_time', e.target.value)}
+                required={isActive}
               />
             </div>
             <div className="day-row__field">
-              <label>End</label>
+              <label>End <span className="required">*</span></label>
               <input
                 type="time"
                 value={data.end_time || ''}
                 onChange={(e) => handleField('end_time', e.target.value)}
+                required={isActive}
               />
             </div>
             <div className="day-row__field">
@@ -75,14 +77,15 @@ export default function DayRow({ day, data, onChange, expanded, onToggle }) {
           </div>
           <div className="day-row__row">
             <div className="day-row__field">
-              <label>Gross (&pound;)</label>
+              <label>Gross (&pound;) <span className="required">*</span></label>
               <input
                 type="number"
                 step="0.01"
-                min="0"
+                min="0.01"
                 value={data.gross_amount || ''}
                 onChange={(e) => handleField('gross_amount', e.target.value)}
                 placeholder="0.00"
+                required={isActive}
               />
             </div>
             <div className="day-row__field">
