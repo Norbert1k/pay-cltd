@@ -31,11 +31,11 @@ function getWeekDays(sundayStr) {
   return days;
 }
 
-// Shift week by N weeks (always lands on Sunday)
+// Shift week by N weeks (always snaps result to Sunday)
 function shiftWeek(sundayStr, weeks) {
   const d = new Date(sundayStr + 'T00:00:00');
   d.setDate(d.getDate() + (weeks * 7));
-  return d.toISOString().split('T')[0];
+  return snapToSunday(d.toISOString().split('T')[0]);
 }
 
 export default function WeekPicker({ value, onChange }) {
@@ -57,6 +57,9 @@ export default function WeekPicker({ value, onChange }) {
     onChange(weekEnding);
   }, [weekEnding]);
 
+  // Wrapper: always ensures weekEnding is a Sunday
+  const setWeek = (dateStr) => setWeekEnding(snapToSunday(dateStr));
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -69,8 +72,8 @@ export default function WeekPicker({ value, onChange }) {
   const monday = weekDays[0];
   const sunday = weekDays[6];
 
-  const goBack = () => setWeekEnding(shiftWeek(weekEnding, -1));
-  const goForward = () => setWeekEnding(shiftWeek(weekEnding, 1));
+  const goBack = () => setWeek(shiftWeek(weekEnding, -1));
+  const goForward = () => setWeek(shiftWeek(weekEnding, 1));
 
   // Generate last 6 weeks + next 2 weeks for quick select
   const quickSelectWeeks = [];
@@ -89,15 +92,15 @@ export default function WeekPicker({ value, onChange }) {
       {/* Quick select buttons */}
       <div className="week-picker-v2__quick">
         <button type="button" className={`week-chip ${weekEnding === lastWeek ? 'week-chip--active' : ''}`}
-          onClick={() => setWeekEnding(lastWeek)}>
+          onClick={() => setWeek(lastWeek)}>
           Last Week
         </button>
         <button type="button" className={`week-chip ${isCurrentWeek ? 'week-chip--active' : ''}`}
-          onClick={() => setWeekEnding(currentWeek)}>
+          onClick={() => setWeek(currentWeek)}>
           This Week
         </button>
         <button type="button" className={`week-chip ${weekEnding === nextWeek ? 'week-chip--active' : ''}`}
-          onClick={() => setWeekEnding(nextWeek)}>
+          onClick={() => setWeek(nextWeek)}>
           Next Week
         </button>
         <button type="button" className="week-chip week-chip--other" onClick={() => setShowPicker(!showPicker)}>
@@ -117,7 +120,7 @@ export default function WeekPicker({ value, onChange }) {
             return (
               <button type="button" key={w}
                 className={`week-picker-v2__option ${isSelected ? 'week-picker-v2__option--active' : ''}`}
-                onClick={() => { setWeekEnding(w); setShowPicker(false); }}>
+                onClick={() => { setWeek(w); setShowPicker(false); }}>
                 <span>{label}</span>
                 {isCurrent && <span className="week-picker-v2__badge">This week</span>}
               </button>
