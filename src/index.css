@@ -938,6 +938,17 @@ a {
   background: #fef2f2;
 }
 
+.btn--danger {
+  background: var(--red);
+  color: #ffffff;
+  border: 1px solid var(--red);
+}
+
+.btn--danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
 .btn--green {
   background: var(--green);
   color: var(--white);
