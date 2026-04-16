@@ -1,5 +1,17 @@
 import { DAY_LABELS } from '../lib/utils';
 
+// Generate time options at 30-min intervals: 06:00, 06:30, 07:00 ... 23:30
+const TIME_OPTIONS = (() => {
+  const opts = [];
+  for (let h = 6; h < 24; h++) {
+    for (const m of ['00', '30']) {
+      const hh = String(h).padStart(2, '0');
+      opts.push(`${hh}:${m}`);
+    }
+  }
+  return opts;
+})();
+
 export default function DayRow({ day, data, onChange, expanded, onToggle }) {
   const label = DAY_LABELS[day];
   const isActive = data.active;
@@ -48,21 +60,25 @@ export default function DayRow({ day, data, onChange, expanded, onToggle }) {
           <div className="day-row__row">
             <div className="day-row__field">
               <label>Start <span className="required">*</span></label>
-              <input
-                type="time"
+              <select
                 value={data.start_time || ''}
                 onChange={(e) => handleField('start_time', e.target.value)}
                 required={isActive}
-              />
+              >
+                <option value="">--:--</option>
+                {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
             <div className="day-row__field">
               <label>End <span className="required">*</span></label>
-              <input
-                type="time"
+              <select
                 value={data.end_time || ''}
                 onChange={(e) => handleField('end_time', e.target.value)}
                 required={isActive}
-              />
+              >
+                <option value="">--:--</option>
+                {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
             <div className="day-row__field">
               <label>Type</label>
