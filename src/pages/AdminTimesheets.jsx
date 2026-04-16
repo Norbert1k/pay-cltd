@@ -285,13 +285,12 @@ export default function AdminTimesheets() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Worker</th><th>Trade</th><th>Weeks</th><th>Site(s)</th><th>Total</th><th>Payment</th><th>Approval</th><th>Actions</th>
+                  <th>Worker</th><th>Week(s)</th><th>Site</th><th>Total</th><th>Payment</th><th>Approval</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {grouped.map(group => {
                   const isExpanded = expandedWorker === group.workerId;
-                  // Get worst status (earliest in pipeline)
                   const statusOrder = ['queried', 'submitted', 'approved_accounts', 'approved_director', 'paid'];
                   const worstStatus = group.timesheets.reduce((worst, ts) => {
                     return statusOrder.indexOf(ts.status) < statusOrder.indexOf(worst) ? ts.status : worst;
@@ -315,13 +314,13 @@ export default function AdminTimesheets() {
                               {group.timesheets.some(t => t.edited) && (
                                 <span className="edited-badge">edited</span>
                               )}
+                              <br /><span className="text-muted text-sm">{group.worker?.trade || 'Worker'}</span>
                               {group.worker && !group.worker.cis_verified && <><br /><span className="text-sm" style={{color:'#BA7517'}}>CIS unverified</span></>}
                             </div>
                           </div>
                         </td>
-                        <td><span className="text-muted">{group.worker?.trade || '-'}</span></td>
                         <td>
-                          <div style={{display:'flex', gap: 4, flexWrap:'nowrap'}}>
+                          <div style={{display:'flex', gap: 4, flexWrap:'wrap'}}>
                             {group.weekEndings.map((we, i) => (
                               <span key={we}>
                                 <span className="week-tag">{formatDateCompact(we)}</span>
@@ -330,14 +329,14 @@ export default function AdminTimesheets() {
                             ))}
                           </div>
                         </td>
-                        <td>{sites.join(', ')}</td>
+                        <td style={{whiteSpace:'nowrap'}}>{sites.join(', ')}</td>
                         <td><strong>{formatCurrency(group.totalAmount)}</strong></td>
                         <td>
                           {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => (
                             <PaymentPill key={m} method={m} />
                           ))}
                         </td>
-                        <td><ApprovalPipeline status={worstStatus} /></td>
+                        <td><ApprovalPipeline status={worstStatus} compact /></td>
                         <td>
                           <div className="action-btns" onClick={e => e.stopPropagation()}>
                             {group.timesheets.map(ts => (
