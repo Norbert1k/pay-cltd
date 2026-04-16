@@ -80,7 +80,7 @@ export default function AdminTimesheets() {
   const fetchAllTimesheets = async () => {
     const { data, error } = await supabase
       .from('timesheets')
-      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, phone, cis_rate, cis_verified), sites(id, site_name)')
+      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, phone, cis_rate, cis_verified, profile_picture_url), sites(id, site_name)')
       .order('submitted_at', { ascending: false });
     if (error) console.error('Fetch error:', error);
     setTimesheets(data || []);
@@ -105,7 +105,7 @@ export default function AdminTimesheets() {
 
     const { data, error } = await supabase
       .from('timesheets')
-      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, phone, cis_rate, cis_verified), sites(id, site_name)')
+      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, phone, cis_rate, cis_verified, profile_picture_url), sites(id, site_name)')
       .gt('week_ending', periodStart)
       .lte('week_ending', periodEnd)
       .order('submitted_at', { ascending: false });
@@ -297,8 +297,22 @@ export default function AdminTimesheets() {
                     <>{/* eslint-disable-next-line react/jsx-key */}
                       <tr key={group.workerId} className={`worker-group-row ${isExpanded ? 'row-expanded' : ''}`} onClick={() => handleExpandWorker(group.workerId)}>
                         <td>
-                          <strong>{group.worker?.full_name}</strong>
-                          {group.worker && !group.worker.cis_verified && <><br /><span className="text-sm" style={{color:'#BA7517'}}>CIS unverified</span></>}
+                          <div style={{display:'flex', alignItems:'center', gap: 8}}>
+                            <div className="worker-avatar-sm">
+                              {group.worker?.profile_picture_url ? (
+                                <img src={group.worker.profile_picture_url} alt="" />
+                              ) : (
+                                <span>{group.worker?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+                              )}
+                            </div>
+                            <div>
+                              <strong>{group.worker?.full_name}</strong>
+                              {group.timesheets.some(t => t.edited) && (
+                                <span className="edited-badge">edited</span>
+                              )}
+                              {group.worker && !group.worker.cis_verified && <><br /><span className="text-sm" style={{color:'#BA7517'}}>CIS unverified</span></>}
+                            </div>
+                          </div>
                         </td>
                         <td><span className="text-muted">{group.worker?.trade || '-'}</span></td>
                         <td>
@@ -403,9 +417,21 @@ export default function AdminTimesheets() {
             {grouped.map(group => (
               <div key={group.workerId} className="timesheet-card timesheet-card--admin" onClick={() => handleExpandWorker(group.workerId)}>
                 <div className="timesheet-card__top">
-                  <div>
-                    <strong>{group.worker?.full_name}</strong>
-                    <span className="text-muted text-sm"> &mdash; {group.worker?.trade || 'Worker'}</span>
+                  <div style={{display:'flex', alignItems:'center', gap: 8}}>
+                    <div className="worker-avatar-sm">
+                      {group.worker?.profile_picture_url ? (
+                        <img src={group.worker.profile_picture_url} alt="" />
+                      ) : (
+                        <span>{group.worker?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <strong>{group.worker?.full_name}</strong>
+                      {group.timesheets.some(t => t.edited) && (
+                        <span className="edited-badge">edited</span>
+                      )}
+                      <span className="text-muted text-sm"> &mdash; {group.worker?.trade || 'Worker'}</span>
+                    </div>
                   </div>
                   <ApprovalPipeline status={group.timesheets[0]?.status} />
                 </div>
