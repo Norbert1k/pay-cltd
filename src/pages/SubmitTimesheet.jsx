@@ -204,6 +204,43 @@ export default function SubmitTimesheet() {
       let timesheetId;
 
       if (existingTimesheet && editMode) {
+        timesheetId = existingTimesheet.id;
+
+        // Step 1: Delete ALL old day entries BEFORE updating timesheet
+        const { error: delError, count: delCount } = await supabase
+          .from('timesheet_days')
+          .delete()
+          .eq('timesheet_id', timesheetId)
+          .select();
+
+        console.log('Delete old days:', delError ? 'ERROR: ' + delError.message : 'OK, deleted ' + (delCount ?? '?') + ' rows');
+
+        if (delError) {
+          // Fallback: individual deletes
+          const { data: oldDays } = await supabase
+            .from('timesheet_days')
+            .select('id')
+            .eq('timesheet_id', timesheetId);
+          if (oldDays && oldDays.length > 0) {
+            const ids = oldDays.map(d => d.id);
+            await supabase.from('timesheet_days').delete().in('id', ids);
+          }
+        }
+
+        // Verify deletion
+        const { data: remaining } = await supabase
+          .from('timesheet_days')
+          .select('id')
+          .eq('timesheet_id', timesheetId);
+
+        if (remaining && remaining.length > 0) {
+          console.error('WARNING: ' + remaining.length + ' old day entries still exist after delete! Forcing cleanup...');
+          // Last resort: delete by IDs directly
+          const ids = remaining.map(d => d.id);
+          await supabase.from('timesheet_days').delete().in('id', ids);
+        }
+
+        // Step 2: Update the timesheet record
         const { error: updateError } = await supabase
           .from('timesheets')
           .update({
@@ -217,28 +254,9 @@ export default function SubmitTimesheet() {
             edited: true,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existingTimesheet.id);
+          .eq('id', timesheetId);
 
         if (updateError) throw updateError;
-        timesheetId = existingTimesheet.id;
-
-        // Delete old day entries first — retry if RLS blocks
-        const { error: delError } = await supabase
-          .from('timesheet_days')
-          .delete()
-          .eq('timesheet_id', timesheetId);
-
-        if (delError) {
-          console.error('Failed to delete old days:', delError);
-          // If delete fails, try to remove via individual deletes
-          const { data: oldDays } = await supabase
-            .from('timesheet_days')
-            .select('id')
-            .eq('timesheet_id', timesheetId);
-          for (const old of (oldDays || [])) {
-            await supabase.from('timesheet_days').delete().eq('id', old.id);
-          }
-        }
       } else {
         const { data: ts, error: tsError } = await supabase
           .from('timesheets')
