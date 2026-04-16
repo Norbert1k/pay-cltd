@@ -150,12 +150,16 @@ export default function AdminWorkerDetail() {
           <div className="detail-list">
             <div className="detail-item">
               <span>Role</span>
-              <div className="role-selector">
-                <button className={`btn btn--sm ${worker.role === 'worker' ? 'btn--active' : 'btn--outline'}`} onClick={() => handleRoleChange('worker')}>Worker</button>
-                <button className={`btn btn--sm ${worker.role === 'accountant' ? 'btn--active' : 'btn--outline'}`} onClick={() => handleRoleChange('accountant')}>Accountant</button>
-                <button className={`btn btn--sm ${worker.role === 'director' ? 'btn--active' : 'btn--outline'}`} onClick={() => handleRoleChange('director')}>Director</button>
-                <button className={`btn btn--sm ${worker.role === 'admin' ? 'btn--active' : 'btn--outline'}`} onClick={() => handleRoleChange('admin')}>Admin</button>
-              </div>
+              <select
+                value={worker.role}
+                onChange={(e) => handleRoleChange(e.target.value)}
+                className="form-input form-input--sm role-dropdown"
+              >
+                <option value="worker">Worker</option>
+                <option value="accountant">Accountant</option>
+                <option value="director">Director</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
             <div className="detail-item">
               <span>Account Status</span>
