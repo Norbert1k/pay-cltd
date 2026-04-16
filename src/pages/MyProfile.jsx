@@ -136,18 +136,24 @@ export default function MyProfile() {
         <div className="form-section">
           <h3 className="form-section__title">
             Payment Details
-            {paymentComplete ? (
-              <span className="form-section__badge form-section__badge--green">Complete</span>
+            {profile?.payment_details_verified ? (
+              <span className="form-section__badge form-section__badge--green">✓ Verified</span>
+            ) : paymentComplete ? (
+              <span className="form-section__badge form-section__badge--amber">Pending Verification</span>
             ) : (
               <span className="form-section__badge form-section__badge--amber">Incomplete</span>
             )}
           </h3>
-          {!paymentComplete && (
-            <p className="form-section__help">Complete all payment fields to enable &ldquo;Pay by Bank Transfer&rdquo; on timesheets.</p>
+          {!paymentComplete ? (
+            <p className="form-section__help">Complete all required fields below. Your details will need verification by the accounts team before you can be paid by bank transfer.</p>
+          ) : !profile?.payment_details_verified ? (
+            <p className="form-section__help" style={{color: '#BA7517'}}>Your payment details have been saved and are awaiting verification by the accounts team. Until verified, you must use &ldquo;Pay by Other&rdquo; when submitting timesheets.</p>
+          ) : (
+            <p className="form-section__help" style={{color: 'var(--green)'}}>Your payment details have been verified. You can now use &ldquo;Pay by Bank Transfer&rdquo; on timesheets.</p>
           )}
           <div className="form-grid">
             <div className="form-group">
-              <label className="form-label">National Insurance Number</label>
+              <label className="form-label">National Insurance Number <span className="required">*</span></label>
               <input type="text" value={form.national_insurance} onChange={(e) => handleChange('national_insurance', e.target.value.toUpperCase())} className="form-input" placeholder="AB123456C" />
             </div>
             <div className="form-group">
@@ -155,15 +161,15 @@ export default function MyProfile() {
               <input type="text" value={form.utr_number} onChange={(e) => handleChange('utr_number', e.target.value)} className="form-input" placeholder="10-digit UTR" />
             </div>
             <div className="form-group">
-              <label className="form-label">Account Name</label>
+              <label className="form-label">Account Name <span className="required">*</span></label>
               <input type="text" value={form.account_name} onChange={(e) => handleChange('account_name', e.target.value)} className="form-input" placeholder="Name on bank account" />
             </div>
             <div className="form-group">
-              <label className="form-label">Sort Code</label>
+              <label className="form-label">Sort Code <span className="required">*</span></label>
               <input type="text" value={form.sort_code} onChange={(e) => handleChange('sort_code', e.target.value)} className="form-input" placeholder="XX-XX-XX" />
             </div>
             <div className="form-group">
-              <label className="form-label">Account Number</label>
+              <label className="form-label">Account Number <span className="required">*</span></label>
               <input type="text" value={form.account_number} onChange={(e) => handleChange('account_number', e.target.value)} className="form-input" placeholder="8-digit account number" />
             </div>
           </div>
