@@ -53,14 +53,20 @@ export default function AdminWorkers() {
   };
 
   const approveUser = async (userId) => {
-    await supabase.from('profiles').update({
+    const { error: updateError } = await supabase.from('profiles').update({
       approval_status: 'approved',
       approved_by: adminProfile.id,
       approved_at: new Date().toISOString(),
     }).eq('id', userId);
 
+    if (updateError) {
+      alert('Failed to approve user: ' + updateError.message);
+      console.error('Approve error:', updateError);
+      return;
+    }
+
     // Create alert for user
-    await supabase.from('alerts').insert({
+    const { error: alertError } = await supabase.from('alerts').insert({
       worker_id: userId,
       type: 'general',
       title: 'Account Approved',
@@ -68,17 +74,26 @@ export default function AdminWorkers() {
       created_by: adminProfile.id,
     });
 
+    if (alertError) console.error('Alert insert error:', alertError);
+
     fetchAll();
     window.dispatchEvent(new Event('badges-refresh'));
   };
 
   const rejectUser = async (userId) => {
-    await supabase.from('profiles').update({
+    const { error } = await supabase.from('profiles').update({
       approval_status: 'rejected',
       approved_by: adminProfile.id,
       approved_at: new Date().toISOString(),
       status: 'inactive',
     }).eq('id', userId);
+
+    if (error) {
+      alert('Failed to reject user: ' + error.message);
+      console.error('Reject error:', error);
+      return;
+    }
+
     fetchAll();
     window.dispatchEvent(new Event('badges-refresh'));
   };
