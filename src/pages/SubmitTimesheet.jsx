@@ -421,36 +421,75 @@ export default function SubmitTimesheet() {
 
         <div className="form-section">
           <h3 className="form-section__title">Payment Method</h3>
-          <div className="payment-cards">
-            <label className={`payment-card ${paymentMethod === 'card' ? 'payment-card--selected' : ''}`}>
-              <input type="radio" name="payment" value="card" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} />
-              <div className="payment-card__content">
-                <div className="payment-card__icon payment-card__icon--card">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
-                  </svg>
+          {(() => {
+            const hasPaymentDetails = profile?.national_insurance && profile?.sort_code && profile?.account_number && profile?.account_name;
+            const isVerified = profile?.payment_details_verified;
+            const bankTransferAllowed = hasPaymentDetails && isVerified;
+
+            // Auto-switch to 'other' if user previously selected card but no longer allowed
+            if (paymentMethod === 'card' && !bankTransferAllowed) {
+              setPaymentMethod('other');
+            }
+
+            return (
+              <>
+                {!bankTransferAllowed && (
+                  <div className="alert alert--warning" style={{marginBottom: 12}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>
+                      <strong>Bank Transfer not available</strong>
+                      <p style={{fontSize: '0.85rem'}}>
+                        {!hasPaymentDetails
+                          ? 'Please complete your payment details in My Profile (NI, sort code, account number, account name).'
+                          : 'Your payment details are awaiting verification by our accounts team. Once verified, Bank Transfer will be available.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="payment-cards">
+                  <label className={`payment-card ${paymentMethod === 'card' ? 'payment-card--selected' : ''} ${!bankTransferAllowed ? 'payment-card--disabled' : ''}`}>
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="card"
+                      checked={paymentMethod === 'card'}
+                      onChange={() => bankTransferAllowed && setPaymentMethod('card')}
+                      disabled={!bankTransferAllowed}
+                    />
+                    <div className="payment-card__content">
+                      <div className="payment-card__icon payment-card__icon--card">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
+                        </svg>
+                      </div>
+                      <div>
+                        <strong>Pay by Bank Transfer</strong>
+                        <p>{bankTransferAllowed ? 'Using verified payment details' : 'Not available yet'}</p>
+                      </div>
+                    </div>
+                  </label>
+                  <label className={`payment-card ${paymentMethod === 'other' ? 'payment-card--selected payment-card--other' : ''}`}>
+                    <input type="radio" name="payment" value="other" checked={paymentMethod === 'other'} onChange={() => setPaymentMethod('other')} />
+                    <div className="payment-card__content">
+                      <div className="payment-card__icon payment-card__icon--other">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                        </svg>
+                      </div>
+                      <div>
+                        <strong>Pay by Other</strong>
+                        <p>Cash or other payment method</p>
+                      </div>
+                    </div>
+                  </label>
                 </div>
-                <div>
-                  <strong>Pay by Bank Transfer</strong>
-                  <p>Using saved payment details</p>
-                </div>
-              </div>
-            </label>
-            <label className={`payment-card ${paymentMethod === 'other' ? 'payment-card--selected payment-card--other' : ''}`}>
-              <input type="radio" name="payment" value="other" checked={paymentMethod === 'other'} onChange={() => setPaymentMethod('other')} />
-              <div className="payment-card__content">
-                <div className="payment-card__icon payment-card__icon--other">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-                  </svg>
-                </div>
-                <div>
-                  <strong>Pay by Other</strong>
-                  <p>Cash or other payment method</p>
-                </div>
-              </div>
-            </label>
-          </div>
+              </>
+            );
+          })()}
         </div>
 
         <button type="submit" className="btn btn--primary btn--full btn--large" disabled={submitting}>
