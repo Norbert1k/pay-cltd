@@ -14,9 +14,282 @@ export default function AdminWorkerDetail() {
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedMonths, setExpandedMonths] = useState(new Set());
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
   const initialExpanded = useRef(false);
 
   useEffect(() => { fetchWorker(); }, [id]);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Please upload an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Image must be under 5MB');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setPhotoError('');
+
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${id}-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(fileName);
+
+      await supabase.from('profiles').update({ profile_picture_url: publicUrl }).eq('id', id);
+      fetchWorker();
+    } catch (err) {
+      setPhotoError('Upload failed: ' + err.message);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!confirm('Remove profile photo?')) return;
+    await supabase.from('profiles').update({ profile_picture_url: null }).eq('id', id);
+    fetchWorker();
+  };
+
+  const handleGenerateIdCard = () => {
+    const workerId = `CLTD-${worker.id.substring(0, 8).toUpperCase()}`;
+    const issueDate = new Date().toLocaleDateString('en-GB');
+    const expiryDate = new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toLocaleDateString('en-GB');
+
+    const cardHtml = `<!DOCTYPE html>
+<html>
+<head>
+<title>ID Card — ${worker.full_name}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #e5e5e5;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+  .page-header {
+    max-width: 850px;
+    margin: 0 auto 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .page-header h1 { font-size: 1.25rem; color: #111; }
+  .print-btn {
+    background: #448a40;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .print-btn:hover { background: #2d6329; }
+  .cards-wrap {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .id-card {
+    width: 340px;
+    height: 215px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    overflow: hidden;
+    position: relative;
+    color: #111;
+  }
+  /* FRONT */
+  .id-card--front { background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%); }
+  .id-card__strip {
+    height: 36px;
+    background: linear-gradient(90deg, #448a40 0%, #2d6329 100%);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    color: white;
+  }
+  .id-card__strip img { height: 20px; margin-right: 10px; filter: brightness(0) invert(1); }
+  .id-card__strip-text {
+    font-family: 'Fahkwang', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .id-card__body {
+    display: flex;
+    padding: 14px;
+    gap: 14px;
+    height: calc(100% - 36px);
+  }
+  .id-card__photo {
+    width: 90px;
+    height: 115px;
+    border-radius: 6px;
+    background: #f0f0f0;
+    border: 2px solid #ddd;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .id-card__photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .id-card__photo-placeholder {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #999;
+    font-family: 'Fahkwang', sans-serif;
+  }
+  .id-card__info {
+    flex: 1;
+    min-width: 0;
+    padding-top: 2px;
+  }
+  .id-card__name {
+    font-family: 'Fahkwang', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #111;
+    margin-bottom: 3px;
+    word-wrap: break-word;
+  }
+  .id-card__role {
+    font-size: 0.78rem;
+    color: #448a40;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .id-card__detail {
+    font-size: 0.68rem;
+    color: #666;
+    margin-bottom: 2px;
+  }
+  .id-card__detail strong { color: #111; letter-spacing: 0.3px; }
+
+  /* BACK */
+  .id-card--back { background: #1a1a1a; color: white; }
+  .id-card__back-header {
+    padding: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+  .id-card__back-header h2 {
+    font-family: 'Fahkwang', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #6bbd66;
+  }
+  .id-card__back-body {
+    padding: 12px 14px;
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+  .id-card__back-body p { margin-bottom: 6px; opacity: 0.85; }
+  .id-card__back-footer {
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    right: 14px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6rem;
+    opacity: 0.5;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .page-header { display: none; }
+    .cards-wrap { gap: 20px; padding: 20px; }
+    .id-card { box-shadow: none; border: 1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>ID Card — ${worker.full_name}</h1>
+    <button class="print-btn" onclick="window.print()">🖨️ Print</button>
+  </div>
+
+  <div class="cards-wrap">
+    <!-- FRONT -->
+    <div class="id-card id-card--front">
+      <div class="id-card__strip">
+        <span class="id-card__strip-text">City Construction Ltd</span>
+      </div>
+      <div class="id-card__body">
+        <div class="id-card__photo">
+          ${worker.profile_picture_url
+            ? `<img src="${worker.profile_picture_url}" alt="${worker.full_name}" />`
+            : `<div class="id-card__photo-placeholder">${(worker.full_name || '?').charAt(0).toUpperCase()}</div>`
+          }
+        </div>
+        <div class="id-card__info">
+          <div class="id-card__name">${worker.full_name || 'Unknown'}</div>
+          <div class="id-card__role">${worker.trade || 'Worker'}</div>
+          <div class="id-card__detail"><strong>ID:</strong> ${workerId}</div>
+          ${worker.national_insurance ? `<div class="id-card__detail"><strong>NI:</strong> ${worker.national_insurance}</div>` : ''}
+          <div class="id-card__detail"><strong>Issued:</strong> ${issueDate}</div>
+          <div class="id-card__detail"><strong>Valid until:</strong> ${expiryDate}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACK -->
+    <div class="id-card id-card--back">
+      <div class="id-card__back-header">
+        <h2>City Construction</h2>
+      </div>
+      <div class="id-card__back-body">
+        <p>This card remains the property of City Construction Ltd.</p>
+        <p>If found, please return to:</p>
+        <p style="opacity:1; color:#6bbd66; font-weight:600;">City Construction Ltd<br>office@cltd.co.uk</p>
+        <p style="margin-top:8px;">The holder of this card is authorised personnel working on behalf of City Construction Ltd.</p>
+      </div>
+      <div class="id-card__back-footer">
+        <span>${workerId}</span>
+        <span>cltd.co.uk</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const w = window.open('', '_blank', 'width=900,height=700');
+    if (w) {
+      w.document.write(cardHtml);
+      w.document.close();
+    } else {
+      alert('Please allow pop-ups to generate the ID card.');
+    }
+  };
 
   const fetchWorker = async () => {
     const { data: w } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
@@ -97,12 +370,58 @@ export default function AdminWorkerDetail() {
         actions={
           <div className="action-btns">
             <button className="btn btn--sm btn--outline" onClick={() => navigate('/admin/workers')}>&larr; Back</button>
+            <button className="btn btn--sm btn--primary" onClick={handleGenerateIdCard}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" />
+                <path d="M15 8h2M15 12h2M7 15h10" />
+              </svg>
+              Generate ID Card
+            </button>
             <button className={`btn btn--sm ${worker.status === 'active' ? 'btn--outline-red' : 'btn--green'}`} onClick={toggleStatus}>
               {worker.status === 'active' ? 'Deactivate' : 'Activate'}
             </button>
           </div>
         }
       />
+
+      {/* Profile Photo */}
+      <div className="photo-section">
+        <div className="photo-section__avatar">
+          {worker.profile_picture_url ? (
+            <img src={worker.profile_picture_url} alt={worker.full_name} />
+          ) : (
+            <div className="photo-section__placeholder">
+              {worker.full_name?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+          )}
+        </div>
+        <div className="photo-section__info">
+          <h4>Profile Photo</h4>
+          <p className="text-muted text-sm">Photo will appear on worker's profile and ID card. PNG/JPG under 5MB.</p>
+          {photoError && <p className="text-red text-sm" style={{marginTop: 4}}>{photoError}</p>}
+          <div className="photo-section__actions">
+            <label className="btn btn--sm btn--primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              {uploadingPhoto ? 'Uploading...' : worker.profile_picture_url ? 'Change Photo' : 'Upload Photo'}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                disabled={uploadingPhoto}
+                style={{display: 'none'}}
+              />
+            </label>
+            {worker.profile_picture_url && (
+              <button className="btn btn--sm btn--outline-red" onClick={handleRemovePhoto}>
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="detail-grid">
         {/* Personal Details */}
