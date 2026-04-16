@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { formatDate, formatCurrency, TRADES } from '../lib/utils';
 import { PageHeader, StatusPill, ApprovalPipeline, PaymentPill, LoadingSpinner } from '../components/ui';
@@ -8,6 +9,7 @@ import { generateTimesheetPDF } from '../components/TimesheetPDF';
 export default function AdminWorkerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { profile: adminProfile } = useAuth();
   const [worker, setWorker] = useState(null);
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,32 @@ export default function AdminWorkerDetail() {
 
   const handleCisUnverify = async () => {
     await supabase.from('profiles').update({ cis_verified: false }).eq('id', id);
+    fetchWorker();
+  };
+
+  const handleVerifyPayment = async () => {
+    await supabase.from('profiles').update({
+      payment_details_verified: true,
+      payment_verified_by: adminProfile.id,
+      payment_verified_at: new Date().toISOString(),
+    }).eq('id', id);
+
+    // Alert the worker
+    await supabase.from('alerts').insert({
+      worker_id: id,
+      type: 'general',
+      title: 'Payment Details Verified',
+      message: 'Your payment details have been verified. You can now use "Pay by Bank Transfer" when submitting timesheets.',
+      created_by: adminProfile.id,
+    });
+
+    fetchWorker();
+  };
+
+  const handleUnverifyPayment = async () => {
+    await supabase.from('profiles').update({
+      payment_details_verified: false,
+    }).eq('id', id);
     fetchWorker();
   };
 
@@ -108,6 +136,39 @@ export default function AdminWorkerDetail() {
                 <span className="status-badge status-badge--amber">Incomplete</span>
               }
             </div>
+          </div>
+
+          {/* Bank Transfer Verification */}
+          <div className="cis-verify-section">
+            <h4>Bank Transfer Verification</h4>
+            {worker.payment_details_verified ? (
+              <div className="cis-verify-status cis-verify-status--verified">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <span>Verified — can pay by Bank Transfer</span>
+                <button className="btn btn--sm btn--outline" onClick={handleUnverifyPayment}>Unverify</button>
+              </div>
+            ) : worker.national_insurance && worker.sort_code && worker.account_number && worker.account_name ? (
+              <div className="cis-verify-status cis-verify-status--unverified">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BA7517" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                </svg>
+                <span>Payment details complete — awaiting verification</span>
+                <button className="btn btn--sm btn--green" onClick={handleVerifyPayment}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                  Verify
+                </button>
+              </div>
+            ) : (
+              <div className="cis-verify-status cis-verify-status--unverified">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BA7517" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span>Cannot verify — worker has not completed payment details yet</span>
+              </div>
+            )}
           </div>
 
           {/* CIS Verification */}
