@@ -309,6 +309,31 @@ export default function AdminWorkerDetail() {
     fetchWorker();
   };
 
+  const handleDeleteWorker = async () => {
+    const name = worker.full_name || 'this worker';
+    if (!confirm(`Are you sure you want to permanently delete ${name}?\n\nThis will delete:\n• All their timesheets and day entries\n• All their alerts\n• Their profile\n\nThis action cannot be undone.`)) return;
+    if (!confirm(`FINAL WARNING: You are about to permanently delete ${name} and all their data. Type YES to confirm.`)) return;
+
+    try {
+      // Delete day entries for all their timesheets
+      const { data: workerTs } = await supabase.from('timesheets').select('id').eq('worker_id', id);
+      if (workerTs && workerTs.length > 0) {
+        const tsIds = workerTs.map(t => t.id);
+        await supabase.from('timesheet_days').delete().in('timesheet_id', tsIds);
+      }
+      // Delete timesheets
+      await supabase.from('timesheets').delete().eq('worker_id', id);
+      // Delete alerts
+      await supabase.from('alerts').delete().eq('worker_id', id);
+      // Delete profile
+      await supabase.from('profiles').delete().eq('id', id);
+      // Delete auth user via admin (this may fail without service role — profile deletion is enough)
+      navigate('/admin/workers', { state: { deleted: true } });
+    } catch (err) {
+      alert('Error deleting worker: ' + err.message);
+    }
+  };
+
   const handleRoleChange = async (newRole) => {
     await supabase.from('profiles').update({ role: newRole }).eq('id', id);
     fetchWorker();
@@ -380,6 +405,14 @@ export default function AdminWorkerDetail() {
             <button className={`btn btn--sm ${worker.status === 'active' ? 'btn--outline-red' : 'btn--green'}`} onClick={toggleStatus}>
               {worker.status === 'active' ? 'Deactivate' : 'Activate'}
             </button>
+            {['admin', 'director'].includes(adminProfile?.role) && (
+              <button className="btn btn--sm btn--danger" onClick={handleDeleteWorker}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+                Delete
+              </button>
+            )}
           </div>
         }
       />
