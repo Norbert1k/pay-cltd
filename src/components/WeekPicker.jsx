@@ -6,7 +6,18 @@ function shortDay(d) {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
 }
 
-// Get Monday of the week ending on given Sunday
+// Snap any date to the Sunday of that week (end of that week, Mon-Sun)
+function snapToSunday(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+  // If already Sunday, keep it
+  if (day === 0) return d.toISOString().split('T')[0];
+  // Otherwise advance to next Sunday (7 - day)
+  d.setDate(d.getDate() + (7 - day));
+  return d.toISOString().split('T')[0];
+}
+
+// Get Monday-to-Sunday array of days, where sundayStr is the Sunday ending the week
 function getWeekDays(sundayStr) {
   const sunday = new Date(sundayStr + 'T00:00:00');
   const days = [];
@@ -20,7 +31,7 @@ function getWeekDays(sundayStr) {
   return days;
 }
 
-// Shift week by N weeks
+// Shift week by N weeks (always lands on Sunday)
 function shiftWeek(sundayStr, weeks) {
   const d = new Date(sundayStr + 'T00:00:00');
   d.setDate(d.getDate() + (weeks * 7));
@@ -28,11 +39,18 @@ function shiftWeek(sundayStr, weeks) {
 }
 
 export default function WeekPicker({ value, onChange }) {
-  const [weekEnding, setWeekEnding] = useState(value || getNextSunday());
+  // Ensure initial value is always a Sunday
+  const [weekEnding, setWeekEnding] = useState(() => {
+    const initial = value || getNextSunday();
+    return snapToSunday(initial);
+  });
   const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
-    if (value && value !== weekEnding) setWeekEnding(value);
+    if (value) {
+      const snapped = snapToSunday(value);
+      if (snapped !== weekEnding) setWeekEnding(snapped);
+    }
   }, [value]);
 
   useEffect(() => {
@@ -130,15 +148,18 @@ export default function WeekPicker({ value, onChange }) {
         </button>
       </div>
 
-      {/* Day strip */}
+      {/* Day strip — Monday to Sunday */}
       <div className="week-strip">
         {weekDays.map((d, i) => {
           const isToday = d.toDateString() === new Date().toDateString();
           const isSunday = d.getDay() === 0;
+          // Fixed labels for clarity (Mon, Tue, Wed, Thu, Fri, Sat, Sun)
+          const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
           return (
             <div key={i} className={`week-strip__day ${isToday ? 'week-strip__day--today' : ''} ${isSunday ? 'week-strip__day--sunday' : ''}`}>
-              <span className="week-strip__dow">{d.toLocaleDateString('en-GB', { weekday: 'short' }).charAt(0)}</span>
+              <span className="week-strip__dow">{DAY_LETTERS[i]}</span>
               <span className="week-strip__date">{d.getDate()}</span>
+              {isSunday && <span className="week-strip__sunday-label">END</span>}
               {isToday && <span className="week-strip__today-dot" />}
             </div>
           );
