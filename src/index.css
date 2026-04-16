@@ -2890,6 +2890,12 @@ a {
   align-items: center;
 }
 
+.approval-pipeline--compact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
 .approval-box {
   display: flex;
   align-items: center;
