@@ -2260,6 +2260,12 @@ a {
   gap: 4px;
 }
 
+.role-dropdown {
+  max-width: 160px;
+  padding: 6px 10px !important;
+  font-size: 0.85rem !important;
+}
+
 /* === Payment Date Card === */
 .payment-date-card {
   background: var(--bg-card);
@@ -2865,6 +2871,37 @@ a {
 .my-ts-row__query {
   background: #fef2f2;
   color: var(--red);
+}
+
+.my-ts-row__paydate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  background: #eff6ff;
+  color: #1e5a9e;
+  border: 1px solid #bfdbfe;
+}
+
+.my-ts-row__paydate--paid {
+  background: var(--green-light);
+  color: var(--green);
+  border-color: rgba(68, 138, 64, 0.3);
+}
+
+[data-theme="dark"] .my-ts-row__paydate {
+  background: #151e2e;
+  color: #6aa4e0;
+  border-color: #1e3a5f;
+}
+
+[data-theme="dark"] .my-ts-row__paydate--paid {
+  background: #1a2e18;
+  color: #80c480;
+  border-color: #2a4a28;
 }
 
 /* Mobile: stack meta vertically */
