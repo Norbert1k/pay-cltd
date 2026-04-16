@@ -57,7 +57,8 @@ export default function SubmitTimesheet() {
   }, [existingTimesheet]);
 
   const fetchSites = async () => {
-    const { data } = await supabase.from('sites').select('*').eq('active', true).order('site_name');
+    const { data, error } = await supabase.from('sites').select('*').order('site_name');
+    if (error) console.error('Fetch sites error:', error);
     setSites(data || []);
     setLoading(false);
   };
