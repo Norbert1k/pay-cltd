@@ -2449,7 +2449,7 @@ a {
 /* === Admin Table === */
 .admin-table-wrapper {
   display: none;
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 .admin-table {
@@ -2458,6 +2458,9 @@ a {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  table-layout: auto;
+  word-break: break-word;
+}
   box-shadow: var(--shadow-sm);
 }
 
