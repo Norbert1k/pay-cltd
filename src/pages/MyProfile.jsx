@@ -83,6 +83,28 @@ export default function MyProfile() {
       )}
 
       <form onSubmit={handleSave}>
+        {/* Profile Photo (read-only for workers) */}
+        <div className="my-photo-display">
+          <div className="my-photo-display__avatar">
+            {profile.profile_picture_url ? (
+              <img src={profile.profile_picture_url} alt={profile.full_name} />
+            ) : (
+              <div className="my-photo-display__placeholder">
+                {profile.full_name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
+          <div>
+            <h4>{profile.full_name}</h4>
+            <p className="text-muted text-sm">
+              {profile.profile_picture_url
+                ? 'Your ID photo'
+                : 'No photo uploaded yet. Your admin will add one for your company ID card.'
+              }
+            </p>
+          </div>
+        </div>
+
         {/* Personal Info */}
         <div className="form-section">
           <h3 className="form-section__title">Personal Information</h3>
