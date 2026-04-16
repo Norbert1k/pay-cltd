@@ -53,6 +53,15 @@ export default function AdminWorkers() {
   };
 
   const approveUser = async (userId) => {
+    // Check current approval status first
+    const { data: currentUser } = await supabase
+      .from('profiles')
+      .select('approval_status')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const wasAlreadyApproved = currentUser?.approval_status === 'approved';
+
     const { error: updateError } = await supabase.from('profiles').update({
       approval_status: 'approved',
       approved_by: adminProfile.id,
@@ -65,16 +74,17 @@ export default function AdminWorkers() {
       return;
     }
 
-    // Create alert for user
-    const { error: alertError } = await supabase.from('alerts').insert({
-      worker_id: userId,
-      type: 'general',
-      title: 'Account Approved',
-      message: 'Your account has been approved. You can now log in and submit timesheets.',
-      created_by: adminProfile.id,
-    });
-
-    if (alertError) console.error('Alert insert error:', alertError);
+    // Only create alert if they weren't already approved
+    if (!wasAlreadyApproved) {
+      const { error: alertError } = await supabase.from('alerts').insert({
+        worker_id: userId,
+        type: 'general',
+        title: 'Account Approved',
+        message: 'Your account has been approved. You can now log in and submit timesheets.',
+        created_by: adminProfile.id,
+      });
+      if (alertError) console.error('Alert insert error:', alertError);
+    }
 
     fetchAll();
     window.dispatchEvent(new Event('badges-refresh'));
