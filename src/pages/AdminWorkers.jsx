@@ -117,6 +117,7 @@ export default function AdminWorkers() {
       // Create user with a random temp password (they'll never use it)
       const tempPassword = crypto.randomUUID() + 'A1!';
 
+      // First check if user already exists in auth (from a previous failed attempt)
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: inviteForm.email,
         password: tempPassword,
@@ -125,13 +126,17 @@ export default function AdminWorkers() {
             full_name: inviteForm.full_name,
             trade: inviteForm.trade,
           },
-          // Don't send the default confirmation email
           emailRedirectTo: window.location.origin + '/login',
         },
       });
 
       if (signUpError) {
-        setInviteMessage('Error: ' + signUpError.message);
+        // If rate limited on signUp, tell user to wait
+        if (signUpError.message.includes('rate limit')) {
+          setInviteMessage('RATE_LIMIT:' + inviteForm.email);
+        } else {
+          setInviteMessage('Error: ' + signUpError.message);
+        }
         setInviting(false);
         return;
       }
@@ -149,13 +154,17 @@ export default function AdminWorkers() {
         }).eq('id', signUpData.user.id);
       }
 
-      // Send password reset email — this is the ONLY email the user should receive
+      // Send password reset email
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(inviteForm.email, {
         redirectTo: window.location.origin + '/login?reset=true',
       });
 
       if (resetError) {
-        setInviteMessage(`Account created but failed to send password email: ${resetError.message}. Go to login and use "Forgot Password" to send manually.`);
+        if (resetError.message.includes('rate limit')) {
+          setInviteMessage('CREATED_NO_EMAIL:' + inviteForm.email);
+        } else {
+          setInviteMessage(`Account created but email failed: ${resetError.message}. Use "Resend Password" from their profile.`);
+        }
       } else {
         setInviteMessage(`Invite sent to ${inviteForm.email}. They'll receive an email to set their password.`);
       }
@@ -220,8 +229,27 @@ export default function AdminWorkers() {
 
       {/* Invite Message */}
       {inviteMessage && (
-        <div className={`alert ${inviteMessage.startsWith('Error') ? 'alert--warning' : 'alert--success'}`}>
-          <div><strong>{inviteMessage}</strong></div>
+        <div className={`alert ${inviteMessage.startsWith('Error') || inviteMessage.startsWith('RATE_LIMIT') || inviteMessage.startsWith('CREATED_NO_EMAIL') ? 'alert--warning' : 'alert--success'}`}>
+          <div style={{flex: 1}}>
+            {inviteMessage.startsWith('RATE_LIMIT:') ? (
+              <>
+                <strong>Email rate limit reached</strong>
+                <p>Supabase limits how many emails can be sent per hour. Please wait 15-30 minutes and try again. Consider setting up custom SMTP in Supabase to remove this limit.</p>
+              </>
+            ) : inviteMessage.startsWith('CREATED_NO_EMAIL:') ? (
+              <>
+                <strong>Account created successfully!</strong>
+                <p>The password email couldn't be sent due to rate limiting. The user ({inviteMessage.split(':')[1]}) exists and is approved. Use the <strong>Resend Password</strong> button on their profile in 15-30 minutes.</p>
+              </>
+            ) : (
+              <strong>{inviteMessage}</strong>
+            )}
+          </div>
+          <button className="alert__dismiss" onClick={() => setInviteMessage('')} title="Dismiss">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
       )}
 
