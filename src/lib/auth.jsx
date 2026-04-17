@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 
 const AuthContext = createContext({});
 
-export function AuthProvider({ children }) {
+export function AuthProvider({ children, onRecovery }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,6 +14,11 @@ export function AuthProvider({ children }) {
       async (event, session) => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
+
+        // Detect password recovery event
+        if (event === 'PASSWORD_RECOVERY' && onRecovery) {
+          onRecovery();
+        }
 
         if (currentUser) {
           // Use setTimeout to avoid Supabase client deadlock
