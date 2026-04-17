@@ -114,10 +114,8 @@ export default function AdminWorkers() {
     setInviteMessage('');
 
     try {
-      // Use Supabase admin invite (sends magic link email)
-      // Since we're on the client, we'll use signUp with a random password
-      // then immediately send a password reset email
-      const tempPassword = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + 'A1!';
+      // Create user with a random temp password (they'll never use it)
+      const tempPassword = crypto.randomUUID() + 'A1!';
 
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: inviteForm.email,
@@ -127,6 +125,8 @@ export default function AdminWorkers() {
             full_name: inviteForm.full_name,
             trade: inviteForm.trade,
           },
+          // Don't send the default confirmation email
+          emailRedirectTo: window.location.origin + '/login',
         },
       });
 
@@ -138,8 +138,7 @@ export default function AdminWorkers() {
 
       // Update the profile with the correct role and auto-approve
       if (signUpData?.user?.id) {
-        // Small delay to ensure trigger has created the profile
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500));
 
         await supabase.from('profiles').update({
           role: inviteForm.role,
@@ -150,12 +149,17 @@ export default function AdminWorkers() {
         }).eq('id', signUpData.user.id);
       }
 
-      // Send password reset so the user can set their own password
-      await supabase.auth.resetPasswordForEmail(inviteForm.email, {
-        redirectTo: window.location.origin + '/login',
+      // Send password reset email — this is the ONLY email the user should receive
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(inviteForm.email, {
+        redirectTo: window.location.origin + '/login?reset=true',
       });
 
-      setInviteMessage(`Invite sent to ${inviteForm.email}. They'll receive an email to set their password.`);
+      if (resetError) {
+        setInviteMessage(`Account created but failed to send password email: ${resetError.message}. Go to login and use "Forgot Password" to send manually.`);
+      } else {
+        setInviteMessage(`Invite sent to ${inviteForm.email}. They'll receive an email to set their password.`);
+      }
+
       setInviteForm({ email: '', full_name: '', trade: '', role: 'worker' });
       setShowInvite(false);
       fetchAll();
