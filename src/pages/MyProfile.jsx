@@ -222,6 +222,88 @@ export default function MyProfile() {
           {saving ? 'Saving...' : 'Save Profile'}
         </button>
       </form>
+
+      {/* Change Password */}
+      <ChangePassword />
+    </div>
+  );
+}
+
+function ChangePassword() {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess('Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="form-section" style={{ marginTop: 24 }}>
+      <h3 className="form-section__title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: 'middle', marginRight: 6 }}>
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
+        </svg>
+        Change Password
+      </h3>
+      <form onSubmit={handleChangePassword}>
+        {error && <div className="auth-error" style={{ marginBottom: 12 }}>{error}</div>}
+        {success && <div className="auth-success" style={{ marginBottom: 12 }}>{success}</div>}
+        <div className="form-grid">
+          <div className="form-group">
+            <label className="form-label">New Password *</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="form-input"
+              placeholder="Minimum 8 characters"
+              required
+              minLength={8}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Confirm New Password *</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="form-input"
+              placeholder="Re-enter new password"
+              required
+            />
+          </div>
+        </div>
+        <button type="submit" className="btn btn--outline btn--full" disabled={saving} style={{ marginTop: 8 }}>
+          {saving ? 'Changing...' : 'Change Password'}
+        </button>
+      </form>
     </div>
   );
 }
