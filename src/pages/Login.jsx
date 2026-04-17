@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { TRADES } from '../lib/utils';
 
-export default function Login() {
+export default function Login({ onPasswordSet }) {
   const [isRegister, setIsRegister] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const [email, setEmail] = useState('');
@@ -68,6 +68,7 @@ export default function Login() {
     } else {
       setMessage('Password set successfully! Redirecting...');
       setIsResetMode(false);
+      if (onPasswordSet) onPasswordSet();
       setTimeout(() => navigate('/dashboard'), 1500);
     }
     setLoading(false);
