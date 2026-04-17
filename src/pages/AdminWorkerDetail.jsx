@@ -380,6 +380,22 @@ export default function AdminWorkerDetail() {
     generateTimesheetPDF(ts, worker, ts.sites, days || []);
   };
 
+  const [resending, setResending] = useState(false);
+
+  const handleResendPassword = async () => {
+    if (!worker.email) return;
+    setResending(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(worker.email, {
+      redirectTo: window.location.origin + '/login?reset=true',
+    });
+    if (error) {
+      alert('Failed to send: ' + error.message);
+    } else {
+      alert(`Password reset link sent to ${worker.email}`);
+    }
+    setResending(false);
+  };
+
   const totalPaid = timesheets
     .filter(t => t.status === 'paid')
     .reduce((sum, t) => sum + parseFloat(t.total_amount || 0), 0);
@@ -400,7 +416,14 @@ export default function AdminWorkerDetail() {
                 <rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" />
                 <path d="M15 8h2M15 12h2M7 15h10" />
               </svg>
-              Generate ID Card
+              ID Card
+            </button>
+            <button className="btn btn--sm btn--outline" onClick={handleResendPassword} disabled={resending}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              {resending ? 'Sending...' : 'Resend Password'}
             </button>
             <button className={`btn btn--sm ${worker.status === 'active' ? 'btn--outline-red' : 'btn--green'}`} onClick={toggleStatus}>
               {worker.status === 'active' ? 'Deactivate' : 'Activate'}
