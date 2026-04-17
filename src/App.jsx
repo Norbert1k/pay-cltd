@@ -17,10 +17,13 @@ import AdminWorkerDetail from './pages/AdminWorkerDetail';
 import AdminSites from './pages/AdminSites';
 import AdminPaymentDates from './pages/AdminPaymentDates';
 
-function ProtectedRoute() {
+function ProtectedRoute({ passwordRecovery, setPasswordRecovery }) {
   const { user, profile, loading, signOut } = useAuth();
   if (loading) return <LoadingSpinner />;
   if (!user) return <Navigate to="/login" replace />;
+
+  // If in password recovery mode, redirect to login to show Set Password form
+  if (passwordRecovery) return <Navigate to="/login" replace />;
 
   // Block pending or rejected users
   if (profile && profile.approval_status === 'pending') {
@@ -112,13 +115,15 @@ function AppLayout() {
 }
 
 export default function App() {
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
+
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <AuthProvider onRecovery={() => setPasswordRecovery(true)}>
         <Routes>
-          <Route path="/login" element={<LoginGuard />} />
+          <Route path="/login" element={<LoginGuard passwordRecovery={passwordRecovery} setPasswordRecovery={setPasswordRecovery} />} />
 
-          <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedRoute passwordRecovery={passwordRecovery} setPasswordRecovery={setPasswordRecovery} />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/submit" element={<SubmitTimesheet />} />
             <Route path="/timesheets" element={<MyTimesheets />} />
@@ -142,9 +147,11 @@ export default function App() {
   );
 }
 
-function LoginGuard() {
+function LoginGuard({ passwordRecovery, setPasswordRecovery }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingSpinner />;
+  // If recovery mode, always show login (which has the Set Password form)
+  if (passwordRecovery) return <Login onPasswordSet={() => setPasswordRecovery(false)} />;
   if (user) return <Navigate to="/dashboard" replace />;
   return <Login />;
 }
