@@ -239,16 +239,18 @@ export default function AdminWorkers() {
               <label className="form-label">Email *</label>
               <input type="email" value={inviteForm.email} onChange={(e) => setInviteForm(f => ({...f, email: e.target.value}))} className="form-input" required />
             </div>
-            <div className="form-group">
-              <label className="form-label">Trade / Role</label>
-              <select value={inviteForm.trade} onChange={(e) => setInviteForm(f => ({...f, trade: e.target.value}))} className="form-input">
-                <option value="">Select trade...</option>
-                {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
+            {inviteForm.role === 'worker' && (
+              <div className="form-group">
+                <label className="form-label">Trade / Role</label>
+                <select value={inviteForm.trade} onChange={(e) => setInviteForm(f => ({...f, trade: e.target.value}))} className="form-input">
+                  <option value="">Select trade...</option>
+                  {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">System Role</label>
-              <select value={inviteForm.role} onChange={(e) => setInviteForm(f => ({...f, role: e.target.value}))} className="form-input">
+              <select value={inviteForm.role} onChange={(e) => setInviteForm(f => ({...f, role: e.target.value, trade: e.target.value !== 'worker' ? '' : f.trade}))} className="form-input">
                 {ROLE_LIST.map(r => <option key={r} value={r}>{ROLES[r]}</option>)}
               </select>
             </div>
