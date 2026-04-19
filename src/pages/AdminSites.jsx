@@ -106,17 +106,19 @@ export default function AdminSites() {
         {sites.map(site => (
           <div key={site.id} className={`site-card ${site.status !== 'active' ? 'site-card--inactive' : ''}`}>
             <div className="site-card__top">
-              <div>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
                 <strong>{site.site_name}</strong>
                 <span className="text-muted text-sm">
                   {[site.site_address, site.city, site.postcode].filter(Boolean).join(', ')}
                 </span>
               </div>
-              <span className={`status-badge ${site.status === 'active' ? 'status-badge--green' : site.status === 'completed' ? 'status-badge--blue' : 'status-badge--grey'}`}>
-                {site.status}
-              </span>
+              <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                <span className={`status-badge ${site.status === 'active' ? 'status-badge--green' : site.status === 'completed' ? 'status-badge--blue' : 'status-badge--grey'}`}>
+                  {site.status}
+                </span>
+                <button className="btn btn--sm btn--outline" onClick={() => handleEdit(site)}>Edit</button>
+              </div>
             </div>
-            <button className="btn btn--sm btn--outline" onClick={() => handleEdit(site)}>Edit</button>
           </div>
         ))}
       </div>
