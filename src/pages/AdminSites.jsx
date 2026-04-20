@@ -50,6 +50,12 @@ export default function AdminSites() {
     setEditId(null);
   };
 
+  const handleDelete = async (site) => {
+    if (!confirm(`Delete site "${site.site_name}"?\n\nAny timesheets linked to this site will keep their data but the site reference will be removed. This cannot be undone.`)) return;
+    await supabase.from('sites').delete().eq('id', site.id);
+    fetchSites();
+  };
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -117,6 +123,11 @@ export default function AdminSites() {
                   {site.status}
                 </span>
                 <button className="btn btn--sm btn--outline" onClick={() => handleEdit(site)}>Edit</button>
+                <button className="btn btn--sm btn--danger" onClick={() => handleDelete(site)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
