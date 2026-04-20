@@ -36,7 +36,7 @@ export default function MyTimesheets() {
   const fetchTimesheets = async () => {
     const { data } = await supabase
       .from('timesheets')
-      .select('*, sites(site_name)')
+      .select('*, sites(site_name, project_ref)')
       .eq('worker_id', profile.id)
       .order('week_ending', { ascending: false });
     setTimesheets(data || []);
@@ -214,7 +214,10 @@ export default function MyTimesheets() {
                         <div className="my-ts-row__main">
                           <div className="my-ts-row__left">
                             <span className="my-ts-row__date">{formatDate(ts.week_ending)}</span>
-                            <span className="my-ts-row__site">{ts.sites?.site_name}</span>
+                            <span className="my-ts-row__site">
+                              {ts.sites?.site_name}
+                              {ts.sites?.project_ref && <span className="text-muted"> ({ts.sites.project_ref})</span>}
+                            </span>
                           </div>
                           <div className="my-ts-row__amount-block">
                             <span className={`my-ts-row__amount-label ${ts.status === 'paid' ? 'my-ts-row__amount-label--paid' : 'my-ts-row__amount-label--due'}`}>
