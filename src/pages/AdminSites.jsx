@@ -7,7 +7,7 @@ export default function AdminSites() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ site_name: '', site_address: '', city: '', postcode: '', status: 'active' });
+  const [form, setForm] = useState({ site_name: '', project_ref: '', site_address: '', city: '', postcode: '', status: 'active' });
 
   useEffect(() => {
     fetchSites();
@@ -26,7 +26,7 @@ export default function AdminSites() {
     } else {
       await supabase.from('sites').insert(form);
     }
-    setForm({ site_name: '', site_address: '', city: '', postcode: '', status: 'active' });
+    setForm({ site_name: '', project_ref: '', site_address: '', city: '', postcode: '', status: 'active' });
     setShowForm(false);
     setEditId(null);
     fetchSites();
@@ -35,6 +35,7 @@ export default function AdminSites() {
   const handleEdit = (site) => {
     setForm({
       site_name: site.site_name,
+      project_ref: site.project_ref || '',
       site_address: site.site_address || '',
       city: site.city || '',
       postcode: site.postcode || '',
@@ -45,7 +46,7 @@ export default function AdminSites() {
   };
 
   const handleCancel = () => {
-    setForm({ site_name: '', site_address: '', city: '', postcode: '', status: 'active' });
+    setForm({ site_name: '', project_ref: '', site_address: '', city: '', postcode: '', status: 'active' });
     setShowForm(false);
     setEditId(null);
   };
@@ -77,8 +78,12 @@ export default function AdminSites() {
           <h3 className="form-section__title">{editId ? 'Edit Site' : 'Add New Site'}</h3>
           <div className="form-grid">
             <div className="form-group">
-              <label className="form-label">Site Name *</label>
+              <label className="form-label">Site Name <span className="required">*</span></label>
               <input type="text" value={form.site_name} onChange={(e) => setForm(f => ({ ...f, site_name: e.target.value }))} className="form-input" required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Project Reference <span className="required">*</span></label>
+              <input type="text" value={form.project_ref} onChange={(e) => setForm(f => ({ ...f, project_ref: e.target.value }))} className="form-input" placeholder="e.g. PRJ-2026-001" required />
             </div>
             <div className="form-group">
               <label className="form-label">Address</label>
@@ -113,7 +118,10 @@ export default function AdminSites() {
           <div key={site.id} className={`site-card ${site.status !== 'active' ? 'site-card--inactive' : ''}`}>
             <div className="site-card__top">
               <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
-                <strong>{site.site_name}</strong>
+                <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                  <strong>{site.site_name}</strong>
+                  {site.project_ref && <span className="week-tag">{site.project_ref}</span>}
+                </div>
                 <span className="text-muted text-sm">
                   {[site.site_address, site.city, site.postcode].filter(Boolean).join(', ')}
                 </span>
