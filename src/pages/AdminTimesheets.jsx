@@ -81,7 +81,7 @@ export default function AdminTimesheets() {
   const fetchAllTimesheets = async () => {
     const { data, error } = await supabase
       .from('timesheets')
-      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, phone, cis_rate, cis_verified, profile_picture_url), sites(id, site_name)')
+      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, phone, cis_rate, cis_verified, profile_picture_url), sites(id, site_name, project_ref)')
       .order('submitted_at', { ascending: false });
     if (error) console.error('Fetch error:', error);
     setTimesheets(data || []);
@@ -106,7 +106,7 @@ export default function AdminTimesheets() {
 
     const { data, error } = await supabase
       .from('timesheets')
-      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, phone, cis_rate, cis_verified, profile_picture_url), sites(id, site_name)')
+      .select('*, profiles!timesheets_worker_id_fkey(id, full_name, trade, email, phone, cis_rate, cis_verified, profile_picture_url), sites(id, site_name, project_ref)')
       .gt('week_ending', periodStart)
       .lte('week_ending', periodEnd)
       .order('submitted_at', { ascending: false });
@@ -352,7 +352,13 @@ export default function AdminTimesheets() {
                             ))}
                           </div>
                         </td>
-                        <td style={{whiteSpace:'nowrap'}}>{sites.join(', ')}</td>
+                        <td style={{whiteSpace:'nowrap'}}>
+                          {sites.join(', ')}
+                          {(() => {
+                            const refs = [...new Set(group.timesheets.map(t => t.sites?.project_ref).filter(Boolean))];
+                            return refs.length > 0 ? <><br /><span className="text-muted text-sm">{refs.join(', ')}</span></> : null;
+                          })()}
+                        </td>
                         <td><strong>{formatCurrency(group.totalAmount)}</strong></td>
                         <td>
                           {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => (
@@ -384,7 +390,11 @@ export default function AdminTimesheets() {
                                 <div key={ts.id} className="ts-detail-card">
                                   <div className="ts-detail-card__header">
                                     <strong>Week Ending: {formatDate(ts.week_ending)}</strong>
-                                    <span>{ts.sites?.site_name} &mdash; {formatCurrency(ts.total_amount)}</span>
+                                    <span>
+                                      {ts.sites?.site_name}
+                                      {ts.sites?.project_ref && <span className="text-muted text-sm" style={{marginLeft: 6}}>({ts.sites.project_ref})</span>}
+                                      {' '}&mdash; {formatCurrency(ts.total_amount)}
+                                    </span>
                                     <ApprovalPipeline status={ts.status} />
                                   </div>
 
