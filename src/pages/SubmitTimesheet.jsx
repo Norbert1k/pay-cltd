@@ -66,7 +66,7 @@ export default function SubmitTimesheet() {
   const checkExisting = async () => {
     const { data } = await supabase
       .from('timesheets')
-      .select('*, sites(site_name)')
+      .select('*, sites(site_name, project_ref)')
       .eq('worker_id', profile.id)
       .eq('week_ending', weekEnding)
       .maybeSingle();
@@ -387,7 +387,7 @@ export default function SubmitTimesheet() {
             <label className="form-label">Site *</label>
             <select value={siteId} onChange={(e) => setSiteId(e.target.value)} className="form-input" required>
               <option value="">Select a site...</option>
-              {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
+              {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}{s.project_ref ? ` (${s.project_ref})` : ''}</option>)}
             </select>
           </div>
 
