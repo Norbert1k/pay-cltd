@@ -26,7 +26,7 @@ export default function Dashboard() {
     try {
       const { data: ts } = await supabase
         .from('timesheets')
-        .select('*, sites(site_name)')
+        .select('*, sites(site_name, project_ref)')
         .eq('worker_id', profile.id)
         .order('week_ending', { ascending: false });
       setTimesheets(ts || []);
