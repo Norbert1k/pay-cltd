@@ -47,29 +47,30 @@ export default function AdminTimesheets() {
 
     const periodEnd = current.cutoff_date || current.payment_date;
 
-    // If no previous payment date, default to 14 days before cutoff (2 weeks)
     let periodStart;
     if (previous) {
       periodStart = previous.payment_date;
     } else {
-      const d = new Date(periodEnd + 'T00:00:00');
-      d.setDate(d.getDate() - 15);
-      periodStart = d.toISOString().split('T')[0];
+      const [y, m, d] = periodEnd.split('-').map(Number);
+      const utc = new Date(Date.UTC(y, m - 1, d - 15));
+      periodStart = `${utc.getUTCFullYear()}-${String(utc.getUTCMonth() + 1).padStart(2, '0')}-${String(utc.getUTCDate()).padStart(2, '0')}`;
     }
 
-    // Find all Sundays between periodStart (exclusive) and periodEnd (inclusive)
+    // Find all Sundays between periodStart (exclusive) and periodEnd (inclusive) using UTC
     const sundays = [];
-    const start = new Date(periodStart + 'T00:00:00');
-    const end = new Date(periodEnd + 'T00:00:00');
+    const [sy, sm, sd] = periodStart.split('-').map(Number);
+    const [ey, em, ed] = periodEnd.split('-').map(Number);
+    const startUtc = new Date(Date.UTC(sy, sm - 1, sd));
+    const endUtc = new Date(Date.UTC(ey, em - 1, ed));
 
-    // Start from the Sunday after periodStart
-    const d = new Date(start);
-    d.setDate(d.getDate() + 1);
-    while (d.getDay() !== 0) d.setDate(d.getDate() + 1);
+    // Find first Sunday after periodStart
+    const d = new Date(Date.UTC(sy, sm - 1, sd + 1));
+    while (d.getUTCDay() !== 0) d.setUTCDate(d.getUTCDate() + 1);
 
-    while (d <= end) {
-      sundays.push(d.toISOString().split('T')[0]);
-      d.setDate(d.getDate() + 7);
+    while (d <= endUtc) {
+      const dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+      sundays.push(dateStr);
+      d.setUTCDate(d.getUTCDate() + 7);
     }
 
     return sundays;
@@ -116,6 +117,19 @@ export default function AdminTimesheets() {
 
   const handleStatusChange = async (tsId, newStatus) => {
     const ts = timesheets.find(t => t.id === tsId);
+    if (!ts) return;
+
+    // Enforce approval order: accounts → director → paid
+    const currentStatus = ts.status;
+    if (newStatus === 'approved_director' && currentStatus !== 'approved_accounts') {
+      alert('Accounts must approve first before Director can approve.');
+      return;
+    }
+    if (newStatus === 'paid' && currentStatus !== 'approved_director') {
+      alert('Director must approve before marking as Paid.');
+      return;
+    }
+
     const updates = { status: newStatus, reviewed_at: new Date().toISOString(), reviewed_by: profile.id };
     if (statusNote) updates.admin_notes = statusNote;
 
@@ -144,6 +158,15 @@ export default function AdminTimesheets() {
     setStatusNote('');
     fetchTimesheets();
     window.dispatchEvent(new Event('badges-refresh'));
+  };
+
+  const handleDeleteTimesheet = async (ts) => {
+    const workerName = ts.profiles?.full_name || 'Unknown';
+    if (!confirm(`Delete timesheet for ${workerName} (WE ${formatDate(ts.week_ending)}, ${formatCurrency(ts.total_amount)})?\n\nThis will permanently remove the timesheet and all day entries. This cannot be undone.`)) return;
+
+    await supabase.from('timesheet_days').delete().eq('timesheet_id', ts.id);
+    await supabase.from('timesheets').delete().eq('id', ts.id);
+    fetchTimesheets();
   };
 
   const handleSendAlert = async (workerId) => {
@@ -342,6 +365,11 @@ export default function AdminTimesheets() {
                             {group.timesheets.map(ts => (
                               <button key={ts.id} className="btn btn--sm btn--outline" onClick={() => handleDownloadPDF(ts)} title={`PDF WE ${formatDateCompact(ts.week_ending)}`}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                              </button>
+                            ))}
+                            {['admin', 'director'].includes(profile?.role) && group.timesheets.map(ts => (
+                              <button key={'del-' + ts.id} className="btn btn--sm btn--danger" onClick={() => handleDeleteTimesheet(ts)} title={`Delete WE ${formatDateCompact(ts.week_ending)}`}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                               </button>
                             ))}
                           </div>
