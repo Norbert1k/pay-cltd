@@ -344,10 +344,10 @@ export default function AdminWorkers() {
                 <span className="text-muted text-sm" style={{marginLeft: 8, fontWeight: 400}}>{management.length} user{management.length !== 1 ? 's' : ''}</span>
               </h3>
               <div className="admin-table-wrapper">
-                <table className="admin-table">
+                <table className="admin-table" style={{tableLayout: 'auto'}}>
                   <thead>
                     <tr>
-                      <th>Name</th><th>Role</th><th>Status</th><th>Actions</th>
+                      <th style={{width: '40%'}}>Name</th><th style={{width: '15%'}}>Role</th><th style={{width: '15%'}}>Status</th><th style={{width: '30%'}}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
