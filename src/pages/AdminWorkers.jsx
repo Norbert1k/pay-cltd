@@ -200,6 +200,10 @@ export default function AdminWorkers() {
     return w.full_name?.toLowerCase().includes(q) || w.email?.toLowerCase().includes(q) || w.trade?.toLowerCase().includes(q);
   });
 
+  const managementRoles = ['admin', 'accountant', 'director'];
+  const management = filtered.filter(w => managementRoles.includes(w.role));
+  const operatives = filtered.filter(w => !managementRoles.includes(w.role));
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -329,68 +333,143 @@ export default function AdminWorkers() {
         <EmptyState title="No users found" message="No users match your search." />
       ) : (
         <>
-          {/* Desktop Table */}
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Name</th><th>Trade</th><th>Role</th><th>NI</th><th>CIS</th><th>Status</th><th>Last Submission</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(w => (
-                  <tr key={w.id} className={w.status === 'inactive' ? 'row-inactive' : ''}>
-                    <td>
-                      <strong>{w.full_name}</strong>
-                      <br /><span className="text-muted text-sm">{w.email}</span>
-                    </td>
-                    <td>{w.trade || '-'}</td>
-                    <td>
-                      <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
-                    </td>
-                    <td>{w.national_insurance || '-'}</td>
-                    <td>
-                      {w.cis_verified ?
-                        <span className="status-badge status-badge--green">{w.cis_rate}%</span> :
-                        <span className="status-badge status-badge--amber">Unverified</span>
-                      }
-                    </td>
-                    <td>
-                      <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
-                    </td>
-                    <td>{w.lastSubmission ? formatDate(w.lastSubmission) : 'Never'}</td>
-                    <td>
-                      <div className="action-btns">
-                        <button className="btn btn--sm btn--outline" onClick={() => navigate(`/admin/workers/${w.id}`)}>View</button>
-                        <button className={`btn btn--sm ${w.status === 'active' ? 'btn--outline-red' : 'btn--green'}`} onClick={() => toggleStatus(w)}>
-                          {w.status === 'active' ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="admin-cards-mobile">
-            {filtered.map(w => (
-              <div key={w.id} className="worker-card" onClick={() => navigate(`/admin/workers/${w.id}`)}>
-                <div className="worker-card__top">
-                  <div className="worker-card__avatar">{w.full_name?.charAt(0)?.toUpperCase()}</div>
-                  <div>
-                    <strong>{w.full_name}</strong>
-                    <span className="text-muted text-sm">{w.trade || 'No trade'}</span>
-                  </div>
-                  <div style={{display:'flex', gap: 4, flexDirection:'column', alignItems:'flex-end'}}>
-                    <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
-                    <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
-                  </div>
-                </div>
+          {/* Management Section */}
+          {management.length > 0 && (
+            <div className="section">
+              <h3 className="section__title" style={{marginBottom: 12}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{verticalAlign: 'middle', marginRight: 6}}>
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+                Management &amp; Accounts
+                <span className="text-muted text-sm" style={{marginLeft: 8, fontWeight: 400}}>{management.length} user{management.length !== 1 ? 's' : ''}</span>
+              </h3>
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th><th>Role</th><th>Status</th><th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {management.map(w => (
+                      <tr key={w.id} className={w.status === 'inactive' ? 'row-inactive' : ''}>
+                        <td>
+                          <strong>{w.full_name}</strong>
+                          <br /><span className="text-muted text-sm">{w.email}</span>
+                        </td>
+                        <td>
+                          <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
+                        </td>
+                        <td>
+                          <div className="action-btns">
+                            <button className="btn btn--sm btn--outline" onClick={() => navigate(`/admin/workers/${w.id}`)}>View</button>
+                            <button className={`btn btn--sm ${w.status === 'active' ? 'btn--outline-red' : 'btn--green'}`} onClick={() => toggleStatus(w)}>
+                              {w.status === 'active' ? 'Deactivate' : 'Activate'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+              {/* Mobile Cards — Management */}
+              <div className="admin-cards-mobile">
+                {management.map(w => (
+                  <div key={w.id} className="worker-card" onClick={() => navigate(`/admin/workers/${w.id}`)}>
+                    <div className="worker-card__top">
+                      <div className="worker-card__avatar">{w.full_name?.charAt(0)?.toUpperCase()}</div>
+                      <div>
+                        <strong>{w.full_name}</strong>
+                        <span className="text-muted text-sm">{w.email}</span>
+                      </div>
+                      <div style={{display:'flex', gap: 4, flexDirection:'column', alignItems:'flex-end'}}>
+                        <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
+                        <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Operatives Section */}
+          {operatives.length > 0 && (
+            <div className="section">
+              <h3 className="section__title" style={{marginBottom: 12}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{verticalAlign: 'middle', marginRight: 6}}>
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+                </svg>
+                Operatives
+                <span className="text-muted text-sm" style={{marginLeft: 8, fontWeight: 400}}>{operatives.length} worker{operatives.length !== 1 ? 's' : ''}</span>
+              </h3>
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th><th>Trade</th><th>Role</th><th>NI</th><th>CIS</th><th>Status</th><th>Last Submission</th><th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {operatives.map(w => (
+                      <tr key={w.id} className={w.status === 'inactive' ? 'row-inactive' : ''}>
+                        <td>
+                          <strong>{w.full_name}</strong>
+                          <br /><span className="text-muted text-sm">{w.email}</span>
+                        </td>
+                        <td>{w.trade || '-'}</td>
+                        <td>
+                          <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
+                        </td>
+                        <td>{w.national_insurance || '-'}</td>
+                        <td>
+                          {w.cis_verified ?
+                            <span className="status-badge status-badge--green">{w.cis_rate}%</span> :
+                            <span className="status-badge status-badge--amber">Unverified</span>
+                          }
+                        </td>
+                        <td>
+                          <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
+                        </td>
+                        <td>{w.lastSubmission ? formatDate(w.lastSubmission) : 'Never'}</td>
+                        <td>
+                          <div className="action-btns">
+                            <button className="btn btn--sm btn--outline" onClick={() => navigate(`/admin/workers/${w.id}`)}>View</button>
+                            <button className={`btn btn--sm ${w.status === 'active' ? 'btn--outline-red' : 'btn--green'}`} onClick={() => toggleStatus(w)}>
+                              {w.status === 'active' ? 'Deactivate' : 'Activate'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile Cards — Operatives */}
+              <div className="admin-cards-mobile">
+                {operatives.map(w => (
+                  <div key={w.id} className="worker-card" onClick={() => navigate(`/admin/workers/${w.id}`)}>
+                    <div className="worker-card__top">
+                      <div className="worker-card__avatar">{w.full_name?.charAt(0)?.toUpperCase()}</div>
+                      <div>
+                        <strong>{w.full_name}</strong>
+                        <span className="text-muted text-sm">{w.trade || 'No trade'}</span>
+                      </div>
+                      <div style={{display:'flex', gap: 4, flexDirection:'column', alignItems:'flex-end'}}>
+                        <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
+                        <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
