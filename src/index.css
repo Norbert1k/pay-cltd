@@ -2506,6 +2506,32 @@ a {
   opacity: 0.5;
 }
 
+/* Name + email stacked cleanly, email truncates on overflow */
+.admin-table .cell-name {
+  min-width: 0;
+}
+.admin-table .cell-name__name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.admin-table .cell-name__email {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+/* Single-line cells that truncate rather than wrap */
+.admin-table .cell-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .admin-cards-mobile {
   display: flex;
   flex-direction: column;
