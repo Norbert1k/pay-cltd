@@ -353,9 +353,9 @@ export default function AdminWorkers() {
                   <tbody>
                     {management.map(w => (
                       <tr key={w.id} className={w.status === 'inactive' ? 'row-inactive' : ''}>
-                        <td>
-                          <strong>{w.full_name}</strong>
-                          <br /><span className="text-muted text-sm">{w.email}</span>
+                        <td className="cell-name">
+                          <strong className="cell-name__name" title={w.full_name}>{w.full_name}</strong>
+                          <span className="cell-name__email text-muted text-sm" title={w.email}>{w.email}</span>
                         </td>
                         <td>
                           <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
@@ -409,24 +409,31 @@ export default function AdminWorkers() {
                 <span className="text-muted text-sm" style={{marginLeft: 8, fontWeight: 400}}>{operatives.length} worker{operatives.length !== 1 ? 's' : ''}</span>
               </h3>
               <div className="admin-table-wrapper">
-                <table className="admin-table">
+                <table className="admin-table admin-table--operatives">
                   <thead>
                     <tr>
-                      <th>Name</th><th>Trade</th><th>Role</th><th>NI</th><th>CIS</th><th>Status</th><th>Last Submission</th><th>Actions</th>
+                      <th style={{width: '22%'}}>Name</th>
+                      <th style={{width: '11%'}}>Trade</th>
+                      <th style={{width: '8%'}}>Role</th>
+                      <th style={{width: '10%'}}>NI</th>
+                      <th style={{width: '10%'}}>CIS</th>
+                      <th style={{width: '9%'}}>Status</th>
+                      <th style={{width: '12%'}}>Last Submission</th>
+                      <th style={{width: '18%'}}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {operatives.map(w => (
                       <tr key={w.id} className={w.status === 'inactive' ? 'row-inactive' : ''}>
-                        <td>
-                          <strong>{w.full_name}</strong>
-                          <br /><span className="text-muted text-sm">{w.email}</span>
+                        <td className="cell-name">
+                          <strong className="cell-name__name" title={w.full_name}>{w.full_name}</strong>
+                          <span className="cell-name__email text-muted text-sm" title={w.email}>{w.email}</span>
                         </td>
-                        <td>{w.trade || '-'}</td>
+                        <td className="cell-truncate" title={w.trade || ''}>{w.trade || '-'}</td>
                         <td>
                           <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
                         </td>
-                        <td>{w.national_insurance || '-'}</td>
+                        <td className="cell-truncate" title={w.national_insurance || ''}>{w.national_insurance || '-'}</td>
                         <td>
                           {w.cis_verified ?
                             <span className="status-badge status-badge--green">{w.cis_rate}%</span> :
@@ -436,7 +443,7 @@ export default function AdminWorkers() {
                         <td>
                           <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
                         </td>
-                        <td>{w.lastSubmission ? formatDate(w.lastSubmission) : 'Never'}</td>
+                        <td className="cell-truncate">{w.lastSubmission ? formatDate(w.lastSubmission) : 'Never'}</td>
                         <td>
                           <div className="action-btns">
                             <button className="btn btn--sm btn--outline" onClick={() => navigate(`/admin/workers/${w.id}`)}>View</button>
