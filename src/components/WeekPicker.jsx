@@ -231,7 +231,7 @@ export default function WeekPicker({ value, onChange, paymentDates = [] }) {
         </button>
       </div>
 
-      {/* Day strip — always Mon to Sun */}
+      {/* Day strip — Mon to Sun + optional cutoff and payment squares */}
       <div className="week-strip">
         {weekDays.map((dateStr, i) => {
           const isToday = dateStr === today;
@@ -246,62 +246,37 @@ export default function WeekPicker({ value, onChange, paymentDates = [] }) {
             </div>
           );
         })}
+
+        {selectedPayment && (
+          <>
+            <div className="week-strip__gap" aria-hidden="true" />
+            <div
+              className={`week-strip__day week-strip__day--${cutoffPassed ? 'red' : 'amber'}`}
+              title={cutoffPassed
+                ? `Cutoff passed — ${cutoffDayShort} ${formatShort(selectedPayment.cutoff_date)}`
+                : `Cutoff — ${cutoffDayShort} ${formatShort(selectedPayment.cutoff_date)} (${cutoffHint})`
+              }
+            >
+              <span className="week-strip__dow">{cutoffDayShort.charAt(0)}</span>
+              <span className="week-strip__date">{parseYMD(selectedPayment.cutoff_date).d}</span>
+              <span className="week-strip__corner-label week-strip__corner-label--amber">CUT</span>
+            </div>
+            <div className="week-strip__gap" aria-hidden="true" />
+            <div
+              className="week-strip__day week-strip__day--pay"
+              title={`Payment day — ${paymentDayShort} ${formatLong(selectedPayment.payment_date)} (${paymentHint})`}
+            >
+              <span className="week-strip__dow">{paymentDayShort.charAt(0)}</span>
+              <span className="week-strip__date">{parseYMD(selectedPayment.payment_date).d}</span>
+              <span className="week-strip__corner-label week-strip__corner-label--green">PAY</span>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Payment / cutoff info tiles */}
-      {selectedPayment ? (
-        <div className="pay-info">
-          <div className={`pay-info__tile ${cutoffPassed ? 'pay-info__tile--red' : 'pay-info__tile--amber'}`}>
-            <div className="pay-info__icon">
-              {cutoffPassed ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              )}
-            </div>
-            <div className="pay-info__body">
-              <div className="pay-info__label">{cutoffPassed ? 'Cutoff Passed' : 'Cutoff'}</div>
-              <div className="pay-info__date">{cutoffDayShort} {formatShort(selectedPayment.cutoff_date)}</div>
-              <div className="pay-info__hint">{cutoffHint}</div>
-            </div>
-          </div>
-          <div className="pay-info__tile pay-info__tile--green">
-            <div className="pay-info__icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M17 4H9v16h7a3 3 0 0 0 0-6H9" />
-                <path d="M7 10h8" />
-              </svg>
-            </div>
-            <div className="pay-info__body">
-              <div className="pay-info__label">Payment Day</div>
-              <div className="pay-info__date">{paymentDayShort} {formatLong(selectedPayment.payment_date)}</div>
-              <div className="pay-info__hint">{paymentHint}</div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="pay-info">
-          <div className="pay-info__tile pay-info__tile--grey pay-info__tile--full">
-            <div className="pay-info__icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            </div>
-            <div className="pay-info__body">
-              <div className="pay-info__label">Payment</div>
-              <div className="pay-info__date">Not yet scheduled</div>
-              <div className="pay-info__hint">Accounts will add a payroll date for this week</div>
-            </div>
-          </div>
+      {!selectedPayment && (
+        <div className="week-strip__caption">
+          Payment date not yet scheduled for this week
         </div>
       )}
     </div>
