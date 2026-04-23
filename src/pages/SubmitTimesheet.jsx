@@ -416,20 +416,61 @@ export default function SubmitTimesheet() {
 
         <div className="form-section">
           <h3 className="form-section__title">CIS Deduction</h3>
-          <label className="cis-toggle">
-            <input type="checkbox" checked={cisEnabled} onChange={(e) => setCisEnabled(e.target.checked)} />
-            <span>Apply CIS deduction</span>
-          </label>
-          {cisEnabled && (
-            <div className="form-group" style={{marginTop: 10}}>
-              <label className="form-label">CIS Rate</label>
-              <select value={cisRate} onChange={(e) => setCisRate(parseFloat(e.target.value))} className="form-input">
-                <option value={20}>20% (Standard rate)</option>
-                <option value={30}>30% (Higher rate)</option>
-                <option value={0}>0% (Gross payment)</option>
-              </select>
-            </div>
-          )}
+          {(() => {
+            const hasCisDetails = profile?.national_insurance && profile?.utr_number;
+            const cisAllowed = hasCisDetails && profile?.cis_verified;
+            const verifiedRate = profile?.cis_rate ?? 20;
+
+            // Auto-disable CIS if no longer allowed (e.g. admin revoked verification)
+            if (cisEnabled && !cisAllowed) {
+              setCisEnabled(false);
+            }
+            // Keep the rate in sync with the verified rate
+            if (cisAllowed && cisRate !== verifiedRate) {
+              setCisRate(verifiedRate);
+            }
+
+            return (
+              <>
+                {!cisAllowed && (
+                  <div className="alert alert--warning" style={{marginBottom: 12}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>
+                      <strong>CIS deduction not available</strong>
+                      <p style={{fontSize: '0.85rem'}}>
+                        {!hasCisDetails
+                          ? 'Please add your NI number and UTR number in My Profile before CIS can be applied.'
+                          : 'Your CIS status is awaiting verification by our accounts team. Once verified, you\'ll be able to apply CIS deductions.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <label className={`cis-toggle ${!cisAllowed ? 'cis-toggle--disabled' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={cisEnabled}
+                    onChange={(e) => cisAllowed && setCisEnabled(e.target.checked)}
+                    disabled={!cisAllowed}
+                  />
+                  <span>Apply CIS deduction</span>
+                </label>
+                {cisEnabled && cisAllowed && (
+                  <div className="form-group" style={{marginTop: 10}}>
+                    <label className="form-label">CIS Rate <span className="text-muted text-sm">(verified by Accounts)</span></label>
+                    <select value={cisRate} className="form-input" disabled>
+                      <option value={20}>20% (Standard rate)</option>
+                      <option value={30}>30% (Higher rate)</option>
+                      <option value={0}>0% (Gross payment)</option>
+                    </select>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         <div className="form-section form-section--summary">
