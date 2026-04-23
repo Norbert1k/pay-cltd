@@ -22,7 +22,7 @@ export default function AdminTimesheets() {
   useEffect(() => { if (paymentDates.length > 0) fetchTimesheets(); }, [selectedPeriodIdx, paymentDates]);
 
   const fetchPaymentDates = async () => {
-    const { data } = await supabase.from('payment_dates').select('*').order('payment_date', { ascending: true });
+    const { data } = await supabase.from('payment_dates').select('*').order('cutoff_date', { ascending: true });
     const sorted = data || [];
     setPaymentDates(sorted);
 
@@ -38,33 +38,40 @@ export default function AdminTimesheets() {
     setSelectedPeriodIdx(currentIdx);
   };
 
-  // Calculate the 2 week-ending Sundays that fall within the selected period
+  // Calculate the week-ending Sundays that fall within the selected payment run.
+  // Rule (matches MyTimesheets logic): a timesheet with week_ending X belongs to
+  // payment run R if R.cutoff_date >= X AND previousRun.cutoff_date < X.
+  // So period boundaries are:
+  //   periodStart (exclusive) = previous run's cutoff_date
+  //   periodEnd (inclusive)   = this run's cutoff_date
   const getWeekEndingsForPeriod = () => {
     if (paymentDates.length === 0) return [];
     const current = paymentDates[selectedPeriodIdx];
     const previous = selectedPeriodIdx > 0 ? paymentDates[selectedPeriodIdx - 1] : null;
     if (!current) return [];
 
-    const periodEnd = current.cutoff_date || current.payment_date;
+    const periodEnd = current.cutoff_date;
 
+    // For the first-ever payment run, fall back to 15 days before its cutoff
+    // (any earlier timesheets are legacy and predate the payroll schedule)
     let periodStart;
     if (previous) {
-      periodStart = previous.payment_date;
+      periodStart = previous.cutoff_date;
     } else {
       const [y, m, d] = periodEnd.split('-').map(Number);
       const utc = new Date(Date.UTC(y, m - 1, d - 15));
       periodStart = `${utc.getUTCFullYear()}-${String(utc.getUTCMonth() + 1).padStart(2, '0')}-${String(utc.getUTCDate()).padStart(2, '0')}`;
     }
 
-    // Find all Sundays between periodStart (exclusive) and periodEnd (inclusive) using UTC
+    // Find all Sundays strictly after periodStart and up to (and including) periodEnd, using UTC
     const sundays = [];
     const [sy, sm, sd] = periodStart.split('-').map(Number);
     const [ey, em, ed] = periodEnd.split('-').map(Number);
-    const startUtc = new Date(Date.UTC(sy, sm - 1, sd));
     const endUtc = new Date(Date.UTC(ey, em - 1, ed));
 
-    // Find first Sunday after periodStart
+    // First candidate day = day after periodStart
     const d = new Date(Date.UTC(sy, sm - 1, sd + 1));
+    // Advance to the next Sunday
     while (d.getUTCDay() !== 0) d.setUTCDate(d.getUTCDate() + 1);
 
     while (d <= endUtc) {
@@ -94,10 +101,10 @@ export default function AdminTimesheets() {
     const previous = selectedPeriodIdx > 0 ? paymentDates[selectedPeriodIdx - 1] : null;
     if (!current) return;
 
-    const periodEnd = current.cutoff_date || current.payment_date;
+    const periodEnd = current.cutoff_date;
     let periodStart;
     if (previous) {
-      periodStart = previous.payment_date;
+      periodStart = previous.cutoff_date;
     } else {
       const d = new Date(periodEnd + 'T00:00:00');
       d.setDate(d.getDate() - 15);
