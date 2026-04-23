@@ -1935,6 +1935,127 @@ a {
   color: var(--green);
   letter-spacing: 0.4px;
 }
+
+/* === Payment / cutoff tiles below week strip === */
+.pay-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.pay-info__tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  min-width: 0;
+}
+.pay-info__tile--full {
+  grid-column: 1 / -1;
+}
+.pay-info__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+.pay-info__body {
+  min-width: 0;
+  flex: 1;
+}
+.pay-info__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.pay-info__date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pay-info__hint {
+  font-size: 0.72rem;
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+/* Amber (upcoming cutoff) */
+.pay-info__tile--amber {
+  background: #fbf4e6;
+  border-color: #e8c98a;
+}
+.pay-info__tile--amber .pay-info__icon { background: #BA7517; }
+.pay-info__tile--amber .pay-info__label { color: #8a5810; }
+.pay-info__tile--amber .pay-info__hint { color: #8a5810; }
+[data-theme="dark"] .pay-info__tile--amber {
+  background: #2a1e0a;
+  border-color: #BA7517;
+}
+[data-theme="dark"] .pay-info__tile--amber .pay-info__label { color: #EF9F27; }
+[data-theme="dark"] .pay-info__tile--amber .pay-info__hint { color: #BA7517; }
+
+/* Green (payment day) */
+.pay-info__tile--green {
+  background: var(--green-light);
+  border-color: rgba(68, 138, 64, 0.35);
+}
+.pay-info__tile--green .pay-info__icon { background: var(--green); }
+.pay-info__tile--green .pay-info__label { color: var(--green-dark, #2d6329); }
+.pay-info__tile--green .pay-info__hint { color: var(--green-dark, #2d6329); }
+[data-theme="dark"] .pay-info__tile--green {
+  background: #132b10;
+  border-color: #448a40;
+}
+[data-theme="dark"] .pay-info__tile--green .pay-info__label { color: #97C459; }
+[data-theme="dark"] .pay-info__tile--green .pay-info__hint { color: #97C459; }
+
+/* Red (cutoff passed) */
+.pay-info__tile--red {
+  background: #fdeaea;
+  border-color: #e89090;
+}
+.pay-info__tile--red .pay-info__icon { background: #A32D2D; }
+.pay-info__tile--red .pay-info__label { color: #7a1f1f; }
+.pay-info__tile--red .pay-info__hint { color: #7a1f1f; }
+[data-theme="dark"] .pay-info__tile--red {
+  background: #2a1010;
+  border-color: #A32D2D;
+}
+[data-theme="dark"] .pay-info__tile--red .pay-info__label { color: #F09595; }
+[data-theme="dark"] .pay-info__tile--red .pay-info__hint { color: #F09595; }
+
+/* Grey (no payment scheduled) */
+.pay-info__tile--grey {
+  background: var(--bg-page);
+  border-color: var(--border-color);
+}
+.pay-info__tile--grey .pay-info__icon {
+  background: var(--grey-300, #ccc);
+  color: var(--text-muted);
+}
+.pay-info__tile--grey .pay-info__label { color: var(--text-muted); }
+.pay-info__tile--grey .pay-info__hint { color: var(--text-muted); }
+.pay-info__tile--grey .pay-info__date { color: var(--text-muted); }
+
+/* Stack tiles on very small screens */
+@media (max-width: 420px) {
+  .pay-info {
+    grid-template-columns: 1fr;
+  }
+}
 .cis-status-banner {
   background: var(--bg-page);
   border: 1px solid var(--border-color);
