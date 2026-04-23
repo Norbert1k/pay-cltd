@@ -1686,6 +1686,14 @@ a {
   flex-shrink: 0;
 }
 
+.cis-toggle--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cis-toggle--disabled input {
+  cursor: not-allowed;
+}
+
 /* === Payment Cards === */
 .payment-options,
 .payment-cards {
