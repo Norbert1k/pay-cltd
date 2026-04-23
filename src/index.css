@@ -1854,13 +1854,13 @@ a {
 
 /* === Week Strip (7 day preview) === */
 .week-strip {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 4px;
   background: var(--bg-page);
   border-radius: var(--radius);
   padding: 8px;
   border: 1px solid var(--border-color);
-  align-items: stretch;
 }
 
 .week-strip__day {
@@ -1874,7 +1874,6 @@ a {
   min-height: 50px;
   position: relative;
   border: 1px solid transparent;
-  flex: 1 1 0;
   min-width: 0;
 }
 
@@ -1904,45 +1903,34 @@ a {
   border-color: var(--green);
 }
 
-/* Cutoff square — amber */
-.week-strip__day--amber {
+/* Cutoff day — amber */
+.week-strip__day--cutoff {
   background: #fbf4e6;
   border-color: #BA7517;
 }
-[data-theme="dark"] .week-strip__day--amber {
+[data-theme="dark"] .week-strip__day--cutoff {
   background: #2a1e0a;
   border-color: #BA7517;
 }
 
-/* Cutoff square — red (passed) */
-.week-strip__day--red {
-  background: #fdeaea;
-  border-color: #A32D2D;
-}
-[data-theme="dark"] .week-strip__day--red {
-  background: #2a1010;
-  border-color: #A32D2D;
-}
-
-/* Payment square — green */
-.week-strip__day--pay {
-  background: var(--green-light);
+/* Payment day — green (stronger than Sunday tint so they're distinguishable) */
+.week-strip__day--payday {
+  background: #dff1d5;
   border-color: var(--green);
 }
-[data-theme="dark"] .week-strip__day--pay {
+[data-theme="dark"] .week-strip__day--payday {
   background: #132b10;
   border-color: #448a40;
 }
 
-/* Dotted gap separator between week and extras */
-.week-strip__gap {
-  flex: 0 0 14px;
-  align-self: stretch;
-  background-image: radial-gradient(circle, var(--text-muted) 1px, transparent 1px);
-  background-size: 4px 4px;
-  background-position: center;
-  background-repeat: repeat-x;
-  opacity: 0.5;
+/* If a day is BOTH cutoff and payday (unusual), payday wins visually */
+.week-strip__day--cutoff.week-strip__day--payday {
+  background: #dff1d5;
+  border-color: var(--green);
+}
+[data-theme="dark"] .week-strip__day--cutoff.week-strip__day--payday {
+  background: #132b10;
+  border-color: #448a40;
 }
 
 .week-strip__dow {
@@ -1979,7 +1967,7 @@ a {
   letter-spacing: 0.4px;
 }
 
-/* Corner labels on cutoff/payment squares */
+/* Corner labels for cutoff / payday markers */
 .week-strip__corner-label {
   position: absolute;
   top: 2px;
@@ -1993,16 +1981,6 @@ a {
 .week-strip__corner-label--green { color: var(--green); }
 [data-theme="dark"] .week-strip__corner-label--green { color: #97C459; }
 
-.week-strip__day--red .week-strip__corner-label--amber { color: #A32D2D; }
-[data-theme="dark"] .week-strip__day--red .week-strip__corner-label--amber { color: #F09595; }
-
-.week-strip__caption {
-  margin-top: 8px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-align: center;
-  font-style: italic;
-}
 .cis-status-banner {
   background: var(--bg-page);
   border: 1px solid var(--border-color);
