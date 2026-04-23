@@ -105,6 +105,8 @@ export default function WeekPicker({ value, onChange, paymentDates = [] }) {
   const thisSunday = getThisSunday();
   const lastSunday = addDays(thisSunday, -7);
   const nextSunday = addDays(thisSunday, 7);
+  // Workers can submit up to (but not beyond) Next Week
+  const maxAllowedSunday = nextSunday;
 
   // Mon-Sun array of date strings for the selected week
   const weekDays = getMonToSun(weekEnding); // [Mon, Tue, ..., Sun]
@@ -114,11 +116,16 @@ export default function WeekPicker({ value, onChange, paymentDates = [] }) {
   const isSelected = (s) => weekEnding === s;
 
   const goBack = () => setWeek(addDays(weekEnding, -7));
-  const goForward = () => setWeek(addDays(weekEnding, 7));
+  const goForward = () => {
+    const next = addDays(weekEnding, 7);
+    if (next > maxAllowedSunday) return;
+    setWeek(next);
+  };
+  const canGoForward = weekEnding < maxAllowedSunday;
 
-  // Build list of selectable weeks (last 6 + this + next 2)
+  // Build list of selectable weeks (last 6 + this + next). Anything past Next Week is blocked.
   const pickerWeeks = [];
-  for (let i = 2; i >= -6; i--) {
+  for (let i = 1; i >= -6; i--) {
     pickerWeeks.push(addDays(thisSunday, i * 7));
   }
 
@@ -128,42 +135,10 @@ export default function WeekPicker({ value, onChange, paymentDates = [] }) {
   const monthYear = `${MONTH_NAMES[m - 1]} ${y}`;
 
   // ------------------------------------------------------------------
-  // Payment / cutoff lookup for the selected week
-  // Rule (same as MyTimesheets): first payment_dates row where cutoff_date >= week_ending
+  // Mark cutoff / payment days visible in the current 7-day strip
   // ------------------------------------------------------------------
-  const selectedPayment = paymentDates
-    .slice()
-    .sort((a, b) => a.cutoff_date.localeCompare(b.cutoff_date))
-    .find(pd => pd.cutoff_date >= weekEnding);
-
-  // Whole-day difference between two YYYY-MM-DD strings (b - a)
-  const daysBetween = (a, b) => {
-    const pa = parseYMD(a), pb = parseYMD(b);
-    const ua = Date.UTC(pa.y, pa.m - 1, pa.d);
-    const ub = Date.UTC(pb.y, pb.m - 1, pb.d);
-    return Math.round((ub - ua) / 86400000);
-  };
-
-  const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const DAY_NAMES_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-  const cutoffPassed = selectedPayment && selectedPayment.cutoff_date < today;
-  const cutoffDaysAway = selectedPayment ? daysBetween(today, selectedPayment.cutoff_date) : null;
-
-  const cutoffHint = (() => {
-    if (!selectedPayment) return '';
-    if (cutoffPassed) return 'Will go on next payroll';
-    if (cutoffDaysAway === 0) return 'Today';
-    if (cutoffDaysAway === 1) return 'Tomorrow';
-    return `in ${cutoffDaysAway} days`;
-  })();
-
-  const paymentHint = selectedPayment
-    ? `${DAY_NAMES_LONG[getDayOfWeek(selectedPayment.payment_date)]} payroll`
-    : '';
-
-  const cutoffDayShort = selectedPayment ? DAY_NAMES_SHORT[getDayOfWeek(selectedPayment.cutoff_date)] : '';
-  const paymentDayShort = selectedPayment ? DAY_NAMES_SHORT[getDayOfWeek(selectedPayment.payment_date)] : '';
+  const cutoffSet = new Set(paymentDates.map(pd => pd.cutoff_date));
+  const paymentSet = new Set(paymentDates.map(pd => pd.payment_date));
 
   return (
     <div className="week-picker-v2">
@@ -224,61 +199,47 @@ export default function WeekPicker({ value, onChange, paymentDates = [] }) {
           </div>
           <div className="week-picker-v2__month">{monthYear}</div>
         </div>
-        <button type="button" className="week-picker-v2__nav" onClick={goForward} title="Next week">
+        <button
+          type="button"
+          className="week-picker-v2__nav"
+          onClick={goForward}
+          title={canGoForward ? 'Next week' : 'You can only submit up to next week'}
+          disabled={!canGoForward}
+          style={!canGoForward ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
       </div>
 
-      {/* Day strip — Mon to Sun + optional cutoff and payment squares */}
+      {/* Day strip — always Mon to Sun */}
       <div className="week-strip">
         {weekDays.map((dateStr, i) => {
           const isToday = dateStr === today;
           const isSunday = i === 6;
+          const isCutoff = cutoffSet.has(dateStr);
+          const isPayment = paymentSet.has(dateStr);
           return (
             <div key={dateStr}
-              className={`week-strip__day ${isToday ? 'week-strip__day--today' : ''} ${isSunday ? 'week-strip__day--sunday' : ''}`}>
+              className={[
+                'week-strip__day',
+                isToday ? 'week-strip__day--today' : '',
+                isSunday ? 'week-strip__day--sunday' : '',
+                isCutoff ? 'week-strip__day--cutoff' : '',
+                isPayment ? 'week-strip__day--payday' : '',
+              ].filter(Boolean).join(' ')}
+              title={isCutoff ? 'Cutoff day' : isPayment ? 'Payment day' : undefined}>
               <span className="week-strip__dow">{DAY_LETTERS[i]}</span>
               <span className="week-strip__date">{parseYMD(dateStr).d}</span>
-              {isSunday && <span className="week-strip__sunday-label">END</span>}
+              {isSunday && !isCutoff && !isPayment && <span className="week-strip__sunday-label">END</span>}
+              {isCutoff && <span className="week-strip__corner-label week-strip__corner-label--amber">CUT</span>}
+              {isPayment && <span className="week-strip__corner-label week-strip__corner-label--green">PAY</span>}
               {isToday && <span className="week-strip__today-dot" />}
             </div>
           );
         })}
-
-        {selectedPayment && (
-          <>
-            <div className="week-strip__gap" aria-hidden="true" />
-            <div
-              className={`week-strip__day week-strip__day--${cutoffPassed ? 'red' : 'amber'}`}
-              title={cutoffPassed
-                ? `Cutoff passed — ${cutoffDayShort} ${formatShort(selectedPayment.cutoff_date)}`
-                : `Cutoff — ${cutoffDayShort} ${formatShort(selectedPayment.cutoff_date)} (${cutoffHint})`
-              }
-            >
-              <span className="week-strip__dow">{cutoffDayShort.charAt(0)}</span>
-              <span className="week-strip__date">{parseYMD(selectedPayment.cutoff_date).d}</span>
-              <span className="week-strip__corner-label week-strip__corner-label--amber">CUT</span>
-            </div>
-            <div className="week-strip__gap" aria-hidden="true" />
-            <div
-              className="week-strip__day week-strip__day--pay"
-              title={`Payment day — ${paymentDayShort} ${formatLong(selectedPayment.payment_date)} (${paymentHint})`}
-            >
-              <span className="week-strip__dow">{paymentDayShort.charAt(0)}</span>
-              <span className="week-strip__date">{parseYMD(selectedPayment.payment_date).d}</span>
-              <span className="week-strip__corner-label week-strip__corner-label--green">PAY</span>
-            </div>
-          </>
-        )}
       </div>
-
-      {!selectedPayment && (
-        <div className="week-strip__caption">
-          Payment date not yet scheduled for this week
-        </div>
-      )}
     </div>
   );
 }
