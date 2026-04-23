@@ -168,6 +168,17 @@ export default function SubmitTimesheet() {
   const validateForm = () => {
     if (!siteId) return 'Please select a site';
 
+    // Workers can only submit for weeks up to and including next week
+    const thisSunday = getNextSunday();
+    const maxAllowed = (() => {
+      const d = new Date(thisSunday + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + 7);
+      return d.toISOString().split('T')[0];
+    })();
+    if (weekEnding > maxAllowed) {
+      return 'You can only submit for weeks up to next week. Please select an earlier week.';
+    }
+
     const activeDays = DAYS.filter(d => days[d].active);
     if (activeDays.length === 0) return 'Please add at least one day';
 
