@@ -42,8 +42,9 @@ export default function SubmitTimesheet() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [cutoffPassed, setCutoffPassed] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [paymentDates, setPaymentDates] = useState([]);
 
-  useEffect(() => { fetchSites(); }, []);
+  useEffect(() => { fetchSites(); fetchPaymentDates(); }, []);
   useEffect(() => {
     if (profile) checkExisting();
   }, [weekEnding, profile]);
@@ -61,6 +62,14 @@ export default function SubmitTimesheet() {
     if (error) console.error('Fetch sites error:', error);
     setSites(data || []);
     setLoading(false);
+  };
+
+  const fetchPaymentDates = async () => {
+    const { data } = await supabase
+      .from('payment_dates')
+      .select('*')
+      .order('payment_date', { ascending: true });
+    setPaymentDates(data || []);
   };
 
   const checkExisting = async () => {
@@ -308,7 +317,7 @@ export default function SubmitTimesheet() {
     return (
       <div className="page">
         <PageHeader title="Submit Timesheet" subtitle="Enter your hours for the week" />
-        <WeekPicker value={weekEnding} onChange={setWeekEnding} />
+        <WeekPicker value={weekEnding} onChange={setWeekEnding} paymentDates={paymentDates} />
         <div className="alert alert--info">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
@@ -334,7 +343,7 @@ export default function SubmitTimesheet() {
     return (
       <div className="page">
         <PageHeader title="Submit Timesheet" subtitle="Enter your hours for the week" />
-        <WeekPicker value={weekEnding} onChange={setWeekEnding} />
+        <WeekPicker value={weekEnding} onChange={setWeekEnding} paymentDates={paymentDates} />
 
         <div className={`alert ${existingTimesheet.status === 'queried' ? 'alert--warning' : 'alert--info'}`}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -381,7 +390,7 @@ export default function SubmitTimesheet() {
 
         <div className="form-section">
           <h3 className="form-section__title">Week &amp; Site</h3>
-          <WeekPicker value={weekEnding} onChange={setWeekEnding} />
+          <WeekPicker value={weekEnding} onChange={setWeekEnding} paymentDates={paymentDates} />
 
           <div className="form-group">
             <label className="form-label">Site *</label>
