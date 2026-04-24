@@ -1449,6 +1449,14 @@ a {
   font-weight: 600;
   font-size: 0.9rem;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.worker-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .worker-card__top > div {
@@ -2077,6 +2085,7 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 /* Edited badge */
@@ -2129,6 +2138,7 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .photo-section__placeholder {
@@ -2149,6 +2159,8 @@ a {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .photo-section__actions {
@@ -2187,6 +2199,7 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .my-photo-display__placeholder {
@@ -2196,12 +2209,19 @@ a {
   color: var(--green);
 }
 
+.my-photo-display > div:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
 .my-photo-display h4 {
   font-family: var(--font-heading);
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 2px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* === Dashboard Stats Grid === */
@@ -3851,5 +3871,124 @@ a {
 
   .detail-grid .detail-section:last-child {
     grid-column: auto;
+  }
+}
+
+/* ============================================================
+   MOBILE & TABLET POLISH
+   Ensures avatars stay perfectly round, photo sections stack
+   cleanly on narrow screens, and name-edit header is usable
+   on phones. Comprehensive sweep for mobile professionalism.
+   ============================================================ */
+
+/* Phones (≤ 600px) — stack photo sections so avatars stay prominent
+   and text isn't squeezed into a narrow column next to them. */
+@media (max-width: 600px) {
+  .photo-section {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    padding: 18px 16px;
+  }
+
+  .photo-section__info {
+    width: 100%;
+  }
+
+  .photo-section__actions {
+    justify-content: center;
+  }
+
+  .my-photo-display {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .my-photo-display > div:last-child {
+    width: 100%;
+  }
+
+  /* Slightly smaller page title on phones for visual hierarchy */
+  .page-header__title {
+    font-size: 1.25rem;
+  }
+
+  /* Name-edit controls go full-width on phones so you can actually type */
+  .name-edit {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .name-edit__input {
+    max-width: none;
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  /* Make name edit's Save / Cancel split 50/50 on their own row */
+  .name-edit > .btn {
+    flex: 1 1 calc(50% - 3px);
+    justify-content: center;
+  }
+
+  /* Stop long names + pencil from overflowing viewport */
+  .name-view {
+    flex-wrap: wrap;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .name-view > span:first-child {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+  }
+
+  /* PageHeader action buttons wrap and stretch nicely */
+  .page-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .page-header__actions .action-btns {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .page-header__actions .btn {
+    flex: 0 1 auto;
+  }
+}
+
+/* Very narrow (≤ 380px — iPhone SE etc.) — extra-tight adjustments */
+@media (max-width: 380px) {
+  .photo-section__avatar {
+    width: 88px;
+    height: 88px;
+  }
+  .photo-section__placeholder {
+    font-size: 2.2rem;
+  }
+
+  .my-photo-display__avatar {
+    width: 64px;
+    height: 64px;
+  }
+  .my-photo-display__placeholder {
+    font-size: 1.8rem;
+  }
+
+  .page-header__title {
+    font-size: 1.15rem;
+  }
+}
+
+/* iPad portrait (≤ 834px) — reduce photo-section padding slightly */
+@media (min-width: 601px) and (max-width: 834px) {
+  .photo-section {
+    padding: 18px;
+    gap: 16px;
   }
 }
