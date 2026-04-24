@@ -13,7 +13,7 @@ export default function AdminWorkers() {
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('all');
   const [showInvite, setShowInvite] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ email: '', full_name: '', trade: '', role: 'worker' });
+  const [inviteForm, setInviteForm] = useState({ email: '', first_name: '', surname: '', trade: '', role: 'worker' });
   const [inviting, setInviting] = useState(false);
   const [inviteMessage, setInviteMessage] = useState('');
   const navigate = useNavigate();
@@ -110,6 +110,19 @@ export default function AdminWorkers() {
 
   const handleInviteUser = async (e) => {
     e.preventDefault();
+
+    // Validate name parts
+    if (!inviteForm.first_name.trim()) {
+      setInviteMessage('Error: First name is required');
+      return;
+    }
+    if (!inviteForm.surname.trim()) {
+      setInviteMessage('Error: Surname is required');
+      return;
+    }
+
+    const fullName = `${inviteForm.first_name.trim()} ${inviteForm.surname.trim()}`;
+
     setInviting(true);
     setInviteMessage('');
 
@@ -123,7 +136,7 @@ export default function AdminWorkers() {
         password: tempPassword,
         options: {
           data: {
-            full_name: inviteForm.full_name,
+            full_name: fullName,
             trade: inviteForm.trade,
           },
           emailRedirectTo: window.location.origin + '/login',
@@ -169,7 +182,7 @@ export default function AdminWorkers() {
         setInviteMessage(`Invite sent to ${inviteForm.email}. They'll receive an email to set their password.`);
       }
 
-      setInviteForm({ email: '', full_name: '', trade: '', role: 'worker' });
+      setInviteForm({ email: '', first_name: '', surname: '', trade: '', role: 'worker' });
       setShowInvite(false);
       fetchAll();
     } catch (err) {
@@ -263,9 +276,17 @@ export default function AdminWorkers() {
           <h3 className="form-section__title">Invite New User</h3>
           <p className="form-section__help">They'll receive an email to set their password and access the system.</p>
           <div className="form-grid">
-            <div className="form-group">
-              <label className="form-label">Full Name *</label>
-              <input type="text" value={inviteForm.full_name} onChange={(e) => setInviteForm(f => ({...f, full_name: e.target.value}))} className="form-input" required />
+            <div className="form-group form-group--full">
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">First Name *</label>
+                  <input type="text" value={inviteForm.first_name} onChange={(e) => setInviteForm(f => ({...f, first_name: e.target.value}))} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Surname *</label>
+                  <input type="text" value={inviteForm.surname} onChange={(e) => setInviteForm(f => ({...f, surname: e.target.value}))} className="form-input" required />
+                </div>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Email *</label>
