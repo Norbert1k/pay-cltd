@@ -9,7 +9,8 @@ export default function Login({ onPasswordSet }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [surname, setSurname] = useState('');
   const [trade, setTrade] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,8 +101,12 @@ export default function Login({ onPasswordSet }) {
       setError('Password must be at least 8 characters');
       return;
     }
-    if (!fullName.trim()) {
-      setError('Full name is required');
+    if (!firstName.trim()) {
+      setError('First name is required');
+      return;
+    }
+    if (!surname.trim()) {
+      setError('Surname is required');
       return;
     }
     if (!trade) {
@@ -109,12 +114,14 @@ export default function Login({ onPasswordSet }) {
       return;
     }
 
+    const combinedName = `${firstName.trim()} ${surname.trim()}`;
+
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, trade: trade },
+        data: { full_name: combinedName, trade: trade },
       },
     });
 
@@ -245,16 +252,29 @@ export default function Login({ onPasswordSet }) {
           </form>
         ) : (
           <form onSubmit={handleRegister} className="auth-form">
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="form-input"
-                placeholder="John Smith"
-                required
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">First Name *</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="form-input"
+                  placeholder="John"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Surname *</label>
+                <input
+                  type="text"
+                  value={surname}
+                  onChange={(e) => setSurname(e.target.value)}
+                  className="form-input"
+                  placeholder="Smith"
+                  required
+                />
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Trade / Role</label>
