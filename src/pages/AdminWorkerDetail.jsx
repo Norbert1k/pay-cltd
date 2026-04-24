@@ -16,6 +16,11 @@ export default function AdminWorkerDetail() {
   const [expandedMonths, setExpandedMonths] = useState(new Set());
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [nameFirst, setNameFirst] = useState('');
+  const [nameSurname, setNameSurname] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState('');
   const initialExpanded = useRef(false);
 
   useEffect(() => { fetchWorker(); }, [id]);
@@ -62,6 +67,44 @@ export default function AdminWorkerDetail() {
   const handleRemovePhoto = async () => {
     if (!confirm('Remove profile photo?')) return;
     await supabase.from('profiles').update({ profile_picture_url: null }).eq('id', id);
+    fetchWorker();
+  };
+
+  // Pre-fill name edit fields by splitting current full_name on first space
+  const startEditName = () => {
+    const parts = (worker.full_name || '').trim().split(/\s+/);
+    setNameFirst(parts[0] || '');
+    setNameSurname(parts.slice(1).join(' ') || '');
+    setNameError('');
+    setEditingName(true);
+  };
+
+  const cancelEditName = () => {
+    setEditingName(false);
+    setNameError('');
+  };
+
+  const handleSaveName = async () => {
+    const first = nameFirst.trim();
+    const last = nameSurname.trim();
+    if (!first) { setNameError('First name is required'); return; }
+    if (!last) { setNameError('Surname is required'); return; }
+
+    const newFull = `${first} ${last}`;
+    if (newFull === worker.full_name) {
+      setEditingName(false);
+      return;
+    }
+
+    setSavingName(true);
+    setNameError('');
+    const { error } = await supabase.from('profiles').update({ full_name: newFull }).eq('id', id);
+    setSavingName(false);
+    if (error) {
+      setNameError('Save failed: ' + error.message);
+      return;
+    }
+    setEditingName(false);
     fetchWorker();
   };
 
@@ -406,7 +449,50 @@ export default function AdminWorkerDetail() {
   return (
     <div className="page">
       <PageHeader
-        title={worker.full_name}
+        title={
+          editingName ? (
+            <div className="name-edit">
+              <input
+                type="text"
+                value={nameFirst}
+                onChange={(e) => setNameFirst(e.target.value)}
+                className="form-input name-edit__input"
+                placeholder="First name"
+                autoFocus
+              />
+              <input
+                type="text"
+                value={nameSurname}
+                onChange={(e) => setNameSurname(e.target.value)}
+                className="form-input name-edit__input"
+                placeholder="Surname"
+              />
+              <button className="btn btn--sm btn--primary" onClick={handleSaveName} disabled={savingName}>
+                {savingName ? 'Saving…' : 'Save'}
+              </button>
+              <button className="btn btn--sm btn--outline" onClick={cancelEditName} disabled={savingName}>
+                Cancel
+              </button>
+              {nameError && <span className="name-edit__error">{nameError}</span>}
+            </div>
+          ) : (
+            <span className="name-view">
+              <span>{worker.full_name}</span>
+              <button
+                type="button"
+                className="name-view__edit"
+                onClick={startEditName}
+                title="Edit name"
+                aria-label="Edit name"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+            </span>
+          )
+        }
         subtitle={worker.trade || 'Worker'}
         actions={
           <div className="action-btns">
