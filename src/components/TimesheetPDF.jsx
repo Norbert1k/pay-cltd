@@ -173,7 +173,7 @@ export function generateTimesheetPDF(timesheet, profile, site, days) {
   y += 5;
   doc.setTextColor(128, 128, 128);
   doc.setFontSize(8);
-  doc.text('City Construction Ltd', pageWidth / 2, y, { align: 'center' });
+  doc.text('City Construction Group Ltd', pageWidth / 2, y, { align: 'center' });
   doc.text('pay.cltd.co.uk', pageWidth / 2, y + 4, { align: 'center' });
 
   // Save
