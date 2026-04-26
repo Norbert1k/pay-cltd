@@ -105,17 +105,6 @@ export default function DayRow({ day, data, onChange, expanded, onToggle }) {
               />
             </div>
             <div className="day-row__field">
-              <label>Deductions (&pound;)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={data.deductions || ''}
-                onChange={(e) => handleField('deductions', e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="day-row__field">
               <label>Net (&pound;)</label>
               <input
                 type="text"
