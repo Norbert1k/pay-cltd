@@ -30,11 +30,11 @@ export default function AdminPaymentDates() {
     fetchDates();
   };
 
-  // Auto-calculate cutoff (3 days before payment)
+  // Auto-calculate cutoff (2 days before payment)
   const handlePaymentDateChange = (val) => {
     const d = new Date(val + 'T00:00:00');
     const cutoff = new Date(d);
-    cutoff.setDate(cutoff.getDate() - 3);
+    cutoff.setDate(cutoff.getDate() - 2);
     const cutoffStr = cutoff.toISOString().split('T')[0];
     const label = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
     setForm({ payment_date: val, cutoff_date: cutoffStr, label });
@@ -65,7 +65,7 @@ export default function AdminPaymentDates() {
             <div className="form-group">
               <label className="form-label">Cutoff Date (submit by)</label>
               <input type="date" value={form.cutoff_date} onChange={(e) => setForm(f => ({ ...f, cutoff_date: e.target.value }))} className="form-input" required />
-              <span className="text-muted text-sm">Auto-set to 3 days before payment</span>
+              <span className="text-muted text-sm">Auto-set to 2 days before payment</span>
             </div>
             <div className="form-group form-group--full">
               <label className="form-label">Label</label>
