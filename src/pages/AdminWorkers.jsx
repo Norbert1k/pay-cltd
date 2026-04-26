@@ -402,12 +402,18 @@ export default function AdminWorkers() {
                 {management.map(w => (
                   <div key={w.id} className="worker-card" onClick={() => navigate(`/admin/workers/${w.id}`)}>
                     <div className="worker-card__top">
-                      <div className="worker-card__avatar">{w.full_name?.charAt(0)?.toUpperCase()}</div>
-                      <div>
+                      <div className="worker-card__avatar">
+                        {w.profile_picture_url ? (
+                          <img src={w.profile_picture_url} alt="" />
+                        ) : (
+                          w.full_name?.charAt(0)?.toUpperCase()
+                        )}
+                      </div>
+                      <div className="worker-card__info">
                         <strong>{w.full_name}</strong>
                         <span className="text-muted text-sm">{w.email}</span>
                       </div>
-                      <div style={{display:'flex', gap: 4, flexDirection:'column', alignItems:'flex-end'}}>
+                      <div className="worker-card__badges">
                         <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
                         <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
                       </div>
@@ -483,14 +489,39 @@ export default function AdminWorkers() {
                 {operatives.map(w => (
                   <div key={w.id} className="worker-card" onClick={() => navigate(`/admin/workers/${w.id}`)}>
                     <div className="worker-card__top">
-                      <div className="worker-card__avatar">{w.full_name?.charAt(0)?.toUpperCase()}</div>
-                      <div>
+                      <div className="worker-card__avatar">
+                        {w.profile_picture_url ? (
+                          <img src={w.profile_picture_url} alt="" />
+                        ) : (
+                          w.full_name?.charAt(0)?.toUpperCase()
+                        )}
+                      </div>
+                      <div className="worker-card__info">
                         <strong>{w.full_name}</strong>
                         <span className="text-muted text-sm">{w.trade || 'No trade'}</span>
+                        <span className="text-muted text-sm worker-card__email">{w.email}</span>
                       </div>
-                      <div style={{display:'flex', gap: 4, flexDirection:'column', alignItems:'flex-end'}}>
+                      <div className="worker-card__badges">
                         <span className={`role-badge role-badge--${w.role}`}>{ROLES[w.role] || w.role}</span>
                         <span className={`status-badge ${w.status === 'active' ? 'status-badge--green' : 'status-badge--grey'}`}>{w.status}</span>
+                      </div>
+                    </div>
+                    <div className="worker-card__meta">
+                      <div className="worker-card__meta-item">
+                        <span className="worker-card__meta-label">NI</span>
+                        <span>{w.national_insurance || '—'}</span>
+                      </div>
+                      <div className="worker-card__meta-item">
+                        <span className="worker-card__meta-label">CIS</span>
+                        {w.cis_verified ? (
+                          <span className="status-badge status-badge--green">{w.cis_rate}%</span>
+                        ) : (
+                          <span className="status-badge status-badge--amber">Unverified</span>
+                        )}
+                      </div>
+                      <div className="worker-card__meta-item">
+                        <span className="worker-card__meta-label">Last</span>
+                        <span>{w.lastSubmission ? formatDate(w.lastSubmission) : 'Never'}</span>
                       </div>
                     </div>
                   </div>
