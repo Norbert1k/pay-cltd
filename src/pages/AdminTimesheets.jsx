@@ -471,34 +471,129 @@ export default function AdminTimesheets() {
 
           {/* Mobile Cards */}
           <div className="admin-cards-mobile">
-            {grouped.map(group => (
-              <div key={group.workerId} className="timesheet-card timesheet-card--admin" onClick={() => handleExpandWorker(group.workerId)}>
-                <div className="timesheet-card__top">
-                  <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                    <div className="worker-avatar-sm">
-                      {group.worker?.profile_picture_url ? (
-                        <img src={group.worker.profile_picture_url} alt="" />
-                      ) : (
-                        <span>{group.worker?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
-                      )}
+            {grouped.map(group => {
+              const isExpanded = expandedWorker === group.workerId;
+              const statusOrder = ['queried', 'submitted', 'approved_accounts', 'approved_director', 'paid'];
+              const worstStatus = group.timesheets.reduce((worst, ts) => {
+                return statusOrder.indexOf(ts.status) < statusOrder.indexOf(worst) ? ts.status : worst;
+              }, 'paid');
+
+              return (
+                <div key={group.workerId} className={`timesheet-card timesheet-card--admin ${isExpanded ? 'timesheet-card--expanded' : ''}`}>
+                  <div className="timesheet-card__clickable" onClick={() => handleExpandWorker(group.workerId)}>
+                    <div className="timesheet-card__top">
+                      <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0, flex: 1}}>
+                        <div className="worker-avatar-sm">
+                          {group.worker?.profile_picture_url ? (
+                            <img src={group.worker.profile_picture_url} alt="" />
+                          ) : (
+                            <span>{group.worker?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+                          )}
+                        </div>
+                        <div style={{minWidth: 0, flex: 1}}>
+                          <strong className="timesheet-card__name">{group.worker?.full_name}</strong>
+                          {group.timesheets.some(t => t.edited) && (
+                            <span className="edited-badge">edited</span>
+                          )}
+                          <span className="text-muted text-sm timesheet-card__trade"> &mdash; {group.worker?.trade || 'Worker'}</span>
+                        </div>
+                      </div>
+                      <span className="timesheet-card__chevron" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </span>
                     </div>
-                    <div>
-                      <strong>{group.worker?.full_name}</strong>
-                      {group.timesheets.some(t => t.edited) && (
-                        <span className="edited-badge">edited</span>
-                      )}
-                      <span className="text-muted text-sm"> &mdash; {group.worker?.trade || 'Worker'}</span>
+                    <div className="timesheet-card__details">
+                      <span>{group.weekEndings.map(w => formatDateCompact(w)).join(' & ')}</span>
+                      {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => <PaymentPill key={m} method={m} />)}
+                    </div>
+                    <div className="timesheet-card__row">
+                      <ApprovalPipeline status={worstStatus} compact />
+                      <div className="timesheet-card__amount">{formatCurrency(group.totalAmount)}</div>
                     </div>
                   </div>
-                  <ApprovalPipeline status={group.timesheets[0]?.status} />
+
+                  {isExpanded && (
+                    <div className="timesheet-card__expanded">
+                      {group.timesheets.map(ts => (
+                        <div key={ts.id} className="ts-detail-card">
+                          <div className="ts-detail-card__header">
+                            <strong>Week Ending: {formatDate(ts.week_ending)}</strong>
+                            <span>
+                              {ts.sites?.site_name}
+                              {ts.sites?.project_ref && <span className="text-muted text-sm" style={{marginLeft: 6}}>({ts.sites.project_ref})</span>}
+                              {' '}&mdash; {formatCurrency(ts.total_amount)}
+                            </span>
+                            <ApprovalPipeline status={ts.status} />
+                          </div>
+
+                          {expandedDays[ts.id] && expandedDays[ts.id].length > 0 && (
+                            <div style={{overflowX: 'auto'}}>
+                              <table className="mini-table">
+                                <thead><tr><th>Day</th><th>Start</th><th>End</th><th>Type</th><th>Gross</th><th>Ded.</th><th>Net</th></tr></thead>
+                                <tbody>
+                                  {expandedDays[ts.id].map(d => (
+                                    <tr key={d.id}>
+                                      <td>{DL[d.day_of_week]}</td><td>{d.start_time || '-'}</td><td>{d.end_time || '-'}</td>
+                                      <td>{d.work_type || '-'}</td><td>{formatCurrency(d.gross_amount)}</td><td>{formatCurrency(d.deductions)}</td><td>{formatCurrency(d.net_amount)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {ts.cis_rate > 0 && (
+                            <div className="cis-summary">
+                              <span>CIS {ts.cis_rate}% applied</span>
+                              <span>Net: <strong>{formatCurrency(ts.total_amount)}</strong></span>
+                            </div>
+                          )}
+
+                          <div className="ts-detail-card__actions">
+                            <ApprovalControls
+                              status={ts.status}
+                              onStatusChange={(newStatus) => handleStatusChange(ts.id, newStatus)}
+                              canApproveAccounts={['admin', 'accountant', 'director'].includes(profile?.role)}
+                              canApproveDirector={['admin', 'director'].includes(profile?.role)}
+                              canMarkPaid={['admin', 'accountant', 'director'].includes(profile?.role)}
+                            />
+                            <textarea value={statusNote} onChange={(e) => setStatusNote(e.target.value)}
+                              placeholder="Notes (visible to worker if queried)..." className="form-input" rows={2} />
+                            <div className="action-btns" style={{flexWrap: 'wrap'}}>
+                              <button className="btn btn--sm btn--outline" onClick={() => handleDownloadPDF(ts)}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                Download PDF
+                              </button>
+                              {['admin', 'director'].includes(profile?.role) && (
+                                <button className="btn btn--sm btn--danger" onClick={() => handleDeleteTimesheet(ts)}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                  </svg>
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Send alert to worker */}
+                      <div className="send-alert-section">
+                        <h4>Send Message to {group.worker?.full_name}</h4>
+                        <textarea value={alertMessage} onChange={(e) => setAlertMessage(e.target.value)}
+                          placeholder="Type a message..." className="form-input" rows={2} />
+                        <button className="btn btn--sm btn--primary" onClick={() => handleSendAlert(group.workerId)}
+                          disabled={sendingAlert || !alertMessage.trim()}>
+                          {sendingAlert ? 'Sending...' : 'Send Alert'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="timesheet-card__details">
-                  <span>{group.weekEndings.map(w => formatDateCompact(w)).join(' & ')}</span>
-                  {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => <PaymentPill key={m} method={m} />)}
-                </div>
-                <div className="timesheet-card__amount">{formatCurrency(group.totalAmount)}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
