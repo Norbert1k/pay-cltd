@@ -285,7 +285,7 @@ export default function AdminWorkerDetail() {
     <!-- FRONT -->
     <div class="id-card id-card--front">
       <div class="id-card__strip">
-        <span class="id-card__strip-text">City Construction Ltd</span>
+        <span class="id-card__strip-text">City Construction Group Ltd</span>
       </div>
       <div class="id-card__body">
         <div class="id-card__photo">
@@ -311,10 +311,10 @@ export default function AdminWorkerDetail() {
         <h2>City Construction</h2>
       </div>
       <div class="id-card__back-body">
-        <p>This card remains the property of City Construction Ltd.</p>
+        <p>This card remains the property of City Construction Group Ltd.</p>
         <p>If found, please return to:</p>
-        <p style="opacity:1; color:#6bbd66; font-weight:600;">City Construction Ltd<br>office@cltd.co.uk</p>
-        <p style="margin-top:8px;">The holder of this card is authorised personnel working on behalf of City Construction Ltd.</p>
+        <p style="opacity:1; color:#6bbd66; font-weight:600;">City Construction Group Ltd<br>info@cltd.co.uk</p>
+        <p style="margin-top:8px;">The holder of this card is authorised personnel working on behalf of City Construction Group Ltd.</p>
       </div>
       <div class="id-card__back-footer">
         <span>${workerId}</span>
