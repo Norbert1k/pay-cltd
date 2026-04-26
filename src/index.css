@@ -1459,11 +1459,19 @@ a {
   display: block;
 }
 
-.worker-card__top > div {
+.worker-card__info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.worker-card__badges {
+  display: flex;
+  gap: 4px;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
 }
 
 .worker-card__details {
@@ -1472,6 +1480,45 @@ a {
   font-size: 0.8rem;
   color: var(--text-muted);
   margin-top: 8px;
+}
+
+.worker-card__email {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.worker-card__meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.worker-card__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+  min-width: 0;
+}
+
+.worker-card__meta-item > span:not(.worker-card__meta-label) {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.worker-card__meta-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 /* === Worker Alert Card === */
@@ -3991,4 +4038,123 @@ a {
     padding: 18px;
     gap: 16px;
   }
+}
+
+/* ============================================================
+   ADMIN TIMESHEETS — mobile expandable card
+   ============================================================ */
+.timesheet-card--admin .timesheet-card__clickable {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.timesheet-card__name {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.timesheet-card__trade {
+  display: inline;
+}
+
+.timesheet-card__chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.timesheet-card--expanded .timesheet-card__chevron {
+  transform: rotate(180deg);
+}
+
+.timesheet-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timesheet-card__row .timesheet-card__amount {
+  margin-left: auto;
+}
+
+/* Admin timesheets — desktop action button cell — wrap when cramped */
+.admin-table .action-btns {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Admin timesheets — name cell on desktop should never overflow */
+.admin-table td .text-sm {
+  word-break: break-word;
+}
+
+/* ============================================================
+   IPAD PORTRAIT (768-1023px) — desktop table is shown here.
+   Tighten columns and let action buttons wrap so they stop
+   overlapping into adjacent cells.
+   ============================================================ */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .admin-table {
+    table-layout: auto;
+  }
+  .admin-table th,
+  .admin-table td {
+    padding: 8px 6px;
+    font-size: 0.85rem;
+  }
+  .admin-table .action-btns {
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .admin-table .action-btns .btn--sm {
+    padding: 4px 6px;
+  }
+  /* Worker name cell — let it shrink and break long names */
+  .admin-table td:first-child {
+    min-width: 0;
+    word-break: break-word;
+  }
+  .admin-table td:first-child strong {
+    display: inline-block;
+    max-width: 100%;
+    word-break: break-word;
+  }
+}
+
+/* ============================================================
+   PHONES (≤ 767px) — admin tables are hidden, mobile cards
+   are shown. These rules govern card layout.
+   ============================================================ */
+@media (max-width: 767px) {
+  .timesheet-card__details {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .timesheet-card__top {
+    align-items: flex-start;
+  }
+  /* Filters row — make the controls breathable */
+  .filters {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .filters > * {
+    width: 100%;
+  }
+}
+
+/* Mini table inside expanded card — readable on phones */
+.ts-detail-card .mini-table {
+  font-size: 0.78rem;
+}
+.ts-detail-card .mini-table th,
+.ts-detail-card .mini-table td {
+  padding: 4px 6px;
 }
