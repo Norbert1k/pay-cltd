@@ -232,6 +232,18 @@ export default function AdminTimesheets() {
   const grouped = groupTimesheetsByWorker(filtered);
   const currentPayment = paymentDates[selectedPeriodIdx];
 
+  // Totals for this payment run, split by payment method.
+  // Uses unfiltered `timesheets` (the full set for the period) so bars
+  // stay stable as the admin filters/searches the list.
+  // total_amount is already net of CIS in the database.
+  const periodTotals = timesheets.reduce((acc, ts) => {
+    const method = ts.payment_method === 'card' ? 'bank' : 'other';
+    acc[method].sum += Number(ts.total_amount) || 0;
+    acc[method].count += 1;
+    return acc;
+  }, { bank: { sum: 0, count: 0 }, other: { sum: 0, count: 0 } });
+  const periodGrandTotal = periodTotals.bank.sum + periodTotals.other.sum;
+
   const DL = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
   if (loading) return <LoadingSpinner />;
@@ -291,6 +303,37 @@ export default function AdminTimesheets() {
             onClick={() => { setSelectedPeriodIdx(i => i + 1); setLoading(true); }}>
             Next &rarr;
           </button>
+        </div>
+      )}
+
+      {/* Payment-method totals for this period (net of CIS) */}
+      {timesheets.length > 0 && (
+        <div className="period-totals">
+          <div className="period-totals__bar period-totals__bar--bank">
+            <div className="period-totals__icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+            </div>
+            <div className="period-totals__body">
+              <div className="period-totals__label">Bank Transfer</div>
+              <div className="period-totals__sub">{periodTotals.bank.count} timesheet{periodTotals.bank.count !== 1 ? 's' : ''}</div>
+            </div>
+            <div className="period-totals__amount">{formatCurrency(periodTotals.bank.sum)}</div>
+          </div>
+          <div className="period-totals__bar period-totals__bar--other">
+            <div className="period-totals__icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+            <div className="period-totals__body">
+              <div className="period-totals__label">Other</div>
+              <div className="period-totals__sub">{periodTotals.other.count} timesheet{periodTotals.other.count !== 1 ? 's' : ''}</div>
+            </div>
+            <div className="period-totals__amount">{formatCurrency(periodTotals.other.sum)}</div>
+          </div>
         </div>
       )}
 
