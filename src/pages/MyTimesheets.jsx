@@ -231,7 +231,7 @@ export default function MyTimesheets() {
                         <div className="my-ts-row__meta">
                           <div className="my-ts-row__field">
                             <span className="my-ts-row__label">Status:</span>
-                            <StatusPill status={ts.status} />
+                            <StatusPill status={ts.status} paymentMethod={ts.payment_method} />
                           </div>
                           <div className="my-ts-row__field">
                             <span className="my-ts-row__label">Approval:</span>
