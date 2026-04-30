@@ -1,10 +1,17 @@
 import { STATUS_COLORS, PAYMENT_COLORS, STATUS_LABELS, PAYMENT_LABELS } from '../lib/utils';
 
-export function StatusPill({ status }) {
+export function StatusPill({ status, paymentMethod }) {
   const color = STATUS_COLORS[status] || '#808080';
-  const label = STATUS_LABELS[status] || status;
+  let label = STATUS_LABELS[status] || status;
   const isApproved = status === 'approved_accounts' || status === 'approved_director';
   const isPaid = status === 'paid';
+
+  // When paid, show "Paid via Bank Transfer" / "Paid via Other" if we know the method
+  if (isPaid && paymentMethod) {
+    const methodLabel = PAYMENT_LABELS[paymentMethod] || paymentMethod;
+    label = `Paid via ${methodLabel}`;
+  }
+
   return (
     <span className="pill" style={{ background: color + '18', color, borderColor: color + '40' }}>
       {(isApproved || isPaid) && (
