@@ -231,7 +231,7 @@ export default function AdminDashboard() {
                     <td>{ts.sites?.site_name}</td>
                     <td><strong>{formatCurrency(ts.total_amount)}</strong></td>
                     <td><PaymentPill method={ts.payment_method} /></td>
-                    <td><StatusPill status={ts.status} /></td>
+                    <td><StatusPill status={ts.status} paymentMethod={ts.payment_method} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -242,7 +242,7 @@ export default function AdminDashboard() {
           <div className="admin-cards-mobile">
             {recent.map(ts => (
               <div key={ts.id} className="timesheet-card">
-                <div className="timesheet-card__top"><strong>{ts.profiles?.full_name}</strong><StatusPill status={ts.status} /></div>
+                <div className="timesheet-card__top"><strong>{ts.profiles?.full_name}</strong><StatusPill status={ts.status} paymentMethod={ts.payment_method} /></div>
                 <div className="timesheet-card__details"><span>{formatDate(ts.week_ending)} &mdash; {ts.sites?.site_name}</span><PaymentPill method={ts.payment_method} /></div>
                 <div className="timesheet-card__amount">{formatCurrency(ts.total_amount)}</div>
               </div>
