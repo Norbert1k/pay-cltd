@@ -390,10 +390,10 @@ export default function AdminTimesheets() {
                             </div>
                             <div>
                               <strong>{group.worker?.full_name}</strong>
-                              {group.timesheets.some(t => t.edited) && (
-                                <span className="edited-badge">edited</span>
-                              )}
                               <br /><span className="text-muted text-sm">{group.worker?.trade || 'Worker'}</span>
+                              {group.timesheets.some(t => t.edited) && (
+                                <> <span className="edited-badge">edited</span></>
+                              )}
                               {group.worker && !group.worker.cis_verified && <><br /><span className="text-sm" style={{color:'#BA7517'}}>CIS unverified</span></>}
                             </div>
                           </div>
@@ -417,9 +417,11 @@ export default function AdminTimesheets() {
                         </td>
                         <td><strong>{formatCurrency(group.totalAmount)}</strong></td>
                         <td>
-                          {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => (
-                            <PaymentPill key={m} method={m} />
-                          ))}
+                          <div className="payment-pills">
+                            {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => (
+                              <PaymentPill key={m} method={m} />
+                            ))}
+                          </div>
                         </td>
                         <td><ApprovalPipeline status={worstStatus} compact /></td>
                         <td>
