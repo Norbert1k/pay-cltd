@@ -381,9 +381,6 @@ export default function AdminTimesheets() {
                       <tr key={group.workerId} className={`worker-group-row ${isExpanded ? 'row-expanded' : ''}`} onClick={() => handleExpandWorker(group.workerId)}>
                         <td>
                           <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                            {group.timesheets.some(t => t.edited) && (
-                              <span className="edited-badge edited-badge--leading">edited</span>
-                            )}
                             <div className="worker-avatar-sm">
                               {group.worker?.profile_picture_url ? (
                                 <img src={group.worker.profile_picture_url} alt="" />
@@ -399,13 +396,19 @@ export default function AdminTimesheets() {
                           </div>
                         </td>
                         <td>
-                          <div style={{display:'flex', gap: 4, flexWrap:'wrap'}}>
-                            {group.weekEndings.map((we, i) => (
-                              <span key={we}>
-                                <span className="week-tag">{formatDateCompact(we)}</span>
-                                {i < group.weekEndings.length - 1 && <span style={{color:'var(--grey)', fontSize:'0.7rem'}}> &amp; </span>}
-                              </span>
-                            ))}
+                          <div className="week-cell">
+                            {group.weekEndings.map((we, i) => {
+                              const ts = group.timesheets.find(t => t.week_ending === we);
+                              return (
+                                <span key={we} className="week-cell__item-wrap">
+                                  <span className="week-cell__item">
+                                    <span className="week-tag">{formatDateCompact(we)}</span>
+                                    {ts?.edited && <span className="edited-badge edited-badge--sm">edited</span>}
+                                  </span>
+                                  {i < group.weekEndings.length - 1 && <span className="week-cell__sep">&amp;</span>}
+                                </span>
+                              );
+                            })}
                           </div>
                         </td>
                         <td style={{whiteSpace:'nowrap'}}>
@@ -416,7 +419,7 @@ export default function AdminTimesheets() {
                           })()}
                         </td>
                         <td><strong>{formatCurrency(group.totalAmount)}</strong></td>
-                        <td>
+                        <td style={{textAlign: 'center'}}>
                           <div className="payment-pills">
                             {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => (
                               <PaymentPill key={m} method={m} />
