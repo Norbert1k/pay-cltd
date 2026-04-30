@@ -453,7 +453,7 @@ export default function AdminTimesheets() {
 
                       {isExpanded && (
                         <tr key={group.workerId + '-detail'} className="detail-row">
-                          <td colSpan={8}>
+                          <td colSpan={7}>
                             <div className="worker-detail-expanded">
                               {group.timesheets.map(ts => (
                                 <div key={ts.id} className="ts-detail-card">
