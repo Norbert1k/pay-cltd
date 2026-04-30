@@ -4265,8 +4265,14 @@ a {
 /* Payment pills group — centred together in admin tables */
 .payment-pills {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   justify-content: center;
   align-items: center;
+}
+
+/* EDITED badge sitting in front of avatar */
+.edited-badge--leading {
+  flex-shrink: 0;
+  margin-left: 0;
 }
