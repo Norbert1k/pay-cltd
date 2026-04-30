@@ -364,7 +364,7 @@ export default function AdminTimesheets() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Worker</th><th>Week(s)</th><th>Site</th><th>Total</th><th>Payment</th><th>Approval</th><th></th>
+                  <th>Worker</th><th>Week(s)</th><th>Site</th><th>Total</th><th style={{textAlign:'center'}}>Payment</th><th>Approval</th><th></th>
                 </tr>
               </thead>
               <tbody>
