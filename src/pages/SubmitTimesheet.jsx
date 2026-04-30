@@ -44,14 +44,21 @@ export default function SubmitTimesheet() {
   const [editMode, setEditMode] = useState(false);
   const [paymentDates, setPaymentDates] = useState([]);
 
+  // Admin edit: ID of a timesheet being edited by an admin/accountant/director.
+  // When set, the page loads that exact timesheet (not the admin's own week),
+  // bypasses canEdit, and on save preserves the existing status & admin_notes.
+  const adminEditId = location.state?.adminEditId || null;
+  const isAdminEditMode = !!adminEditId && ['admin', 'accountant', 'director'].includes(profile?.role);
+
   useEffect(() => { fetchSites(); fetchPaymentDates(); }, []);
   useEffect(() => {
     if (profile) checkExisting();
   }, [weekEnding, profile]);
 
-  // Auto-enter edit mode if navigated here from "Edit" button
+  // Auto-enter edit mode if navigated here from "Edit" button (worker or admin)
   useEffect(() => {
-    if (location.state?.weekEnding && existingTimesheet && canEdit && !editMode) {
+    if (existingTimesheet && canEdit && !editMode &&
+        (location.state?.weekEnding || isAdminEditMode)) {
       loadForEdit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,12 +80,28 @@ export default function SubmitTimesheet() {
   };
 
   const checkExisting = async () => {
-    const { data } = await supabase
-      .from('timesheets')
-      .select('*, sites(site_name, project_ref)')
-      .eq('worker_id', profile.id)
-      .eq('week_ending', weekEnding)
-      .maybeSingle();
+    let data;
+    if (isAdminEditMode) {
+      // Admin editing a specific timesheet — fetch by ID
+      const res = await supabase
+        .from('timesheets')
+        .select('*, sites(site_name, project_ref)')
+        .eq('id', adminEditId)
+        .maybeSingle();
+      data = res.data;
+      if (data) {
+        // Sync the displayed week with the timesheet being edited
+        if (data.week_ending !== weekEnding) setWeekEnding(data.week_ending);
+      }
+    } else {
+      const res = await supabase
+        .from('timesheets')
+        .select('*, sites(site_name, project_ref)')
+        .eq('worker_id', profile.id)
+        .eq('week_ending', weekEnding)
+        .maybeSingle();
+      data = res.data;
+    }
     setExistingTimesheet(data);
     setEditMode(false);
     resetForm();
@@ -113,10 +136,10 @@ export default function SubmitTimesheet() {
     setDays(d);
   };
 
-  // Can edit if: not paid AND (cutoff not passed OR status is queried)
-  const canEdit = existingTimesheet
+  // Can edit if: admin edit mode (always allowed) OR not paid AND (cutoff not passed OR queried)
+  const canEdit = isAdminEditMode || (existingTimesheet
     ? existingTimesheet.status !== 'paid' && (!cutoffPassed || existingTimesheet.status === 'queried')
-    : true;
+    : true);
 
   const loadForEdit = async () => {
     if (!existingTimesheet) return;
@@ -261,19 +284,24 @@ export default function SubmitTimesheet() {
         }
 
         // Step 2: Update the timesheet record
+        const updatePayload = {
+          site_id: siteId,
+          approving_manager: approvingManager,
+          payment_method: paymentMethod,
+          total_amount: totalNet,
+          cis_rate: cisEnabled ? cisRate : null,
+          edited: true,
+          updated_at: new Date().toISOString(),
+        };
+        // Worker edits reset the approval pipeline; admin edits preserve it.
+        if (!isAdminEditMode) {
+          updatePayload.status = 'submitted';
+          updatePayload.admin_notes = null;
+        }
+
         const { error: updateError } = await supabase
           .from('timesheets')
-          .update({
-            site_id: siteId,
-            approving_manager: approvingManager,
-            payment_method: paymentMethod,
-            total_amount: totalNet,
-            cis_rate: cisEnabled ? cisRate : null,
-            status: 'submitted',
-            admin_notes: null,
-            edited: true,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq('id', timesheetId);
 
         if (updateError) throw updateError;
@@ -314,7 +342,11 @@ export default function SubmitTimesheet() {
       const { error: daysError } = await supabase.from('timesheet_days').insert(dayRows);
       if (daysError) throw daysError;
 
-      navigate('/timesheets', { state: { submitted: true } });
+      if (isAdminEditMode) {
+        navigate('/admin/timesheets', { state: { adminEdited: true } });
+      } else {
+        navigate('/timesheets', { state: { submitted: true } });
+      }
     } catch (err) {
       setError(err.message);
       setSubmitting(false);
@@ -392,8 +424,10 @@ export default function SubmitTimesheet() {
   return (
     <div className="page">
       <PageHeader
-        title={editMode ? 'Edit Timesheet' : 'Submit Timesheet'}
-        subtitle="Enter your hours for the week"
+        title={isAdminEditMode ? 'Admin Edit — Timesheet' : (editMode ? 'Edit Timesheet' : 'Submit Timesheet')}
+        subtitle={isAdminEditMode
+          ? `Editing ${location.state?.workerName || 'worker'} timesheet — status will be preserved`
+          : 'Enter your hours for the week'}
       />
 
       <form onSubmit={handleFormSubmit} onKeyDown={handleKeyDown} className="timesheet-form">
