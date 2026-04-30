@@ -144,7 +144,7 @@ export default function AdminCalendar() {
               <div key={ts.id} className="timesheet-card">
                 <div className="timesheet-card__top">
                   <strong>{ts.profiles?.full_name}</strong>
-                  <StatusPill status={ts.status} />
+                  <StatusPill status={ts.status} paymentMethod={ts.payment_method} />
                 </div>
                 <div className="timesheet-card__details">
                   <span>{ts.sites?.site_name}</span>
