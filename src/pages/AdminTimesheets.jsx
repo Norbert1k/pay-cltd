@@ -381,6 +381,9 @@ export default function AdminTimesheets() {
                       <tr key={group.workerId} className={`worker-group-row ${isExpanded ? 'row-expanded' : ''}`} onClick={() => handleExpandWorker(group.workerId)}>
                         <td>
                           <div style={{display:'flex', alignItems:'center', gap: 8}}>
+                            {group.timesheets.some(t => t.edited) && (
+                              <span className="edited-badge edited-badge--leading">edited</span>
+                            )}
                             <div className="worker-avatar-sm">
                               {group.worker?.profile_picture_url ? (
                                 <img src={group.worker.profile_picture_url} alt="" />
@@ -391,9 +394,6 @@ export default function AdminTimesheets() {
                             <div>
                               <strong>{group.worker?.full_name}</strong>
                               <br /><span className="text-muted text-sm">{group.worker?.trade || 'Worker'}</span>
-                              {group.timesheets.some(t => t.edited) && (
-                                <> <span className="edited-badge">edited</span></>
-                              )}
                               {group.worker && !group.worker.cis_verified && <><br /><span className="text-sm" style={{color:'#BA7517'}}>CIS unverified</span></>}
                             </div>
                           </div>
