@@ -4163,26 +4163,36 @@ a {
    PAYMENT-METHOD TOTAL BARS — Admin Timesheets
    Side by side, stack below 600px.
    ============================================================ */
+.period-totals-wrap {
+  margin-bottom: 16px;
+}
+
 .period-totals {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .period-totals__bar {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   padding: 14px 16px;
   border-radius: var(--radius-lg);
   border: 1px solid transparent;
   min-width: 0;
 }
 
+.period-totals__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .period-totals__icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius);
   display: flex;
   align-items: center;
@@ -4197,7 +4207,7 @@ a {
 }
 
 .period-totals__label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 700;
@@ -4205,20 +4215,92 @@ a {
 }
 
 .period-totals__sub {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   margin-top: 2px;
 }
 
 .period-totals__amount {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-primary);
   flex-shrink: 0;
   white-space: nowrap;
 }
 
-/* Bank Transfer — green (matches PaymentPill 'card' colour #448a40) */
+/* Progress fill bar */
+.period-totals__progress {
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.period-totals__progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* Split summary line (Paid X · Outstanding Y) */
+.period-totals__split {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.period-totals__paid {
+  color: #2d6329;
+  font-weight: 600;
+}
+[data-theme="dark"] .period-totals__paid {
+  color: #97C459;
+}
+
+.period-totals__outstanding {
+  color: #8a5810;
+  font-weight: 600;
+}
+[data-theme="dark"] .period-totals__outstanding {
+  color: #EF9F27;
+}
+
+.period-totals__count {
+  opacity: 0.7;
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+/* Bottom strip with grand totals */
+.period-totals__strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.period-totals__strip strong {
+  color: var(--text-primary);
+  margin-left: 6px;
+}
+.period-totals__strip-right {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Bank Transfer — green */
 .period-totals__bar--bank {
   background: #e8f4e6;
   border-color: rgba(68, 138, 64, 0.35);
@@ -4226,6 +4308,8 @@ a {
 .period-totals__bar--bank .period-totals__icon { background: #448a40; }
 .period-totals__bar--bank .period-totals__label { color: #2d6329; }
 .period-totals__bar--bank .period-totals__sub   { color: #448a40; }
+.period-totals__bar--bank .period-totals__progress { background: rgba(68, 138, 64, 0.18); }
+.period-totals__progress-fill--bank { background: #448a40; }
 [data-theme="dark"] .period-totals__bar--bank {
   background: #132b10;
   border-color: #448a40;
@@ -4233,7 +4317,7 @@ a {
 [data-theme="dark"] .period-totals__bar--bank .period-totals__label { color: #97C459; }
 [data-theme="dark"] .period-totals__bar--bank .period-totals__sub   { color: #97C459; }
 
-/* Other — deep purple (matches PaymentPill 'other' colour #534AB7) */
+/* Other — purple */
 .period-totals__bar--other {
   background: #ecebf6;
   border-color: rgba(83, 74, 183, 0.35);
@@ -4241,6 +4325,8 @@ a {
 .period-totals__bar--other .period-totals__icon { background: #534AB7; }
 .period-totals__bar--other .period-totals__label { color: #3a3380; }
 .period-totals__bar--other .period-totals__sub   { color: #534AB7; }
+.period-totals__bar--other .period-totals__progress { background: rgba(83, 74, 183, 0.18); }
+.period-totals__progress-fill--other { background: #534AB7; }
 [data-theme="dark"] .period-totals__bar--other {
   background: #1c1a3a;
   border-color: #534AB7;
@@ -4258,8 +4344,31 @@ a {
     padding: 12px 14px;
   }
   .period-totals__amount {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
   }
+  .period-totals__strip {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ============================================================
+   PAID ROW TINT — Admin Timesheets table & cards
+   When all of a worker's timesheets in the period are paid.
+   ============================================================ */
+.admin-table tbody tr.row-paid {
+  background: rgba(68, 138, 64, 0.06);
+  border-left: 3px solid #448a40;
+}
+.admin-table tbody tr.row-paid:hover {
+  background: rgba(68, 138, 64, 0.10);
+}
+[data-theme="dark"] .admin-table tbody tr.row-paid {
+  background: rgba(151, 196, 89, 0.07);
+  border-left: 3px solid #448a40;
+}
+[data-theme="dark"] .admin-table tbody tr.row-paid:hover {
+  background: rgba(151, 196, 89, 0.12);
 }
 
 /* Payment pills group — sit side-by-side in the cell, aligned with header */
