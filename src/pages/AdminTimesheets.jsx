@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { formatDate, formatDateCompact, formatCurrency, STATUSES, STATUS_LABELS, groupTimesheetsByWorker, canApprove } from '../lib/utils';
 import { PageHeader, ApprovalPipeline, ApprovalControls, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
+import { generatePaymentRunPDF } from '../components/PaymentRunPDF';
 
 export default function AdminTimesheets() {
   const { profile } = useAuth();
@@ -225,6 +226,11 @@ export default function AdminTimesheets() {
     }
   };
 
+  const handleDownloadReport = () => {
+    if (!currentPayment || timesheets.length === 0) return;
+    generatePaymentRunPDF(timesheets, periodWeekEndings, currentPayment, profile);
+  };
+
   const filtered = timesheets.filter(ts => {
     if (filter.status && ts.status !== filter.status) return false;
     if (filter.payment && ts.payment_method !== filter.payment) return false;
@@ -238,17 +244,28 @@ export default function AdminTimesheets() {
   const grouped = groupTimesheetsByWorker(filtered);
   const currentPayment = paymentDates[selectedPeriodIdx];
 
-  // Totals for this payment run, split by payment method.
-  // Uses unfiltered `timesheets` (the full set for the period) so bars
-  // stay stable as the admin filters/searches the list.
+  // Totals for this payment run, split by payment method, and within each
+  // method split into paid vs outstanding. Uses unfiltered `timesheets` so
+  // bars stay stable as the admin filters/searches the list.
   // total_amount is already net of CIS in the database.
   const periodTotals = timesheets.reduce((acc, ts) => {
     const method = ts.payment_method === 'card' ? 'bank' : 'other';
-    acc[method].sum += Number(ts.total_amount) || 0;
+    const bucket = ts.status === 'paid' ? 'paid' : 'outstanding';
+    const amt = Number(ts.total_amount) || 0;
+    acc[method].sum += amt;
     acc[method].count += 1;
+    acc[method][bucket].sum += amt;
+    acc[method][bucket].count += 1;
     return acc;
-  }, { bank: { sum: 0, count: 0 }, other: { sum: 0, count: 0 } });
+  }, {
+    bank:  { sum: 0, count: 0, paid: { sum: 0, count: 0 }, outstanding: { sum: 0, count: 0 } },
+    other: { sum: 0, count: 0, paid: { sum: 0, count: 0 }, outstanding: { sum: 0, count: 0 } },
+  });
   const periodGrandTotal = periodTotals.bank.sum + periodTotals.other.sum;
+  const periodPaidTotal = periodTotals.bank.paid.sum + periodTotals.other.paid.sum;
+  const periodPaidCount = periodTotals.bank.paid.count + periodTotals.other.paid.count;
+  const periodOutstandingTotal = periodTotals.bank.outstanding.sum + periodTotals.other.outstanding.sum;
+  const periodOutstandingCount = periodTotals.bank.outstanding.count + periodTotals.other.outstanding.count;
 
   const DL = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
@@ -259,6 +276,17 @@ export default function AdminTimesheets() {
       <PageHeader title="All Timesheets" subtitle={`${filtered.length} timesheet${filtered.length !== 1 ? 's' : ''} this period`}
         actions={
           <div className="action-btns">
+            {timesheets.length > 0 && currentPayment && (
+              <button className="btn btn--sm btn--primary" onClick={handleDownloadReport} title="Download payment run report">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="9" y1="13" x2="15" y2="13" />
+                  <line x1="9" y1="17" x2="15" y2="17" />
+                </svg>
+                Payment Report PDF
+              </button>
+            )}
             {filtered.length > 0 && (
               <button className="btn btn--sm btn--outline" onClick={handleDownloadAll} title="Download all PDFs">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -314,31 +342,68 @@ export default function AdminTimesheets() {
 
       {/* Payment-method totals for this period (net of CIS) */}
       {timesheets.length > 0 && (
-        <div className="period-totals">
-          <div className="period-totals__bar period-totals__bar--bank">
-            <div className="period-totals__icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="5" width="20" height="14" rx="2" />
-                <line x1="2" y1="10" x2="22" y2="10" />
-              </svg>
+        <div className="period-totals-wrap">
+          <div className="period-totals">
+            <div className="period-totals__bar period-totals__bar--bank">
+              <div className="period-totals__head">
+                <div className="period-totals__icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="5" width="20" height="14" rx="2" />
+                    <line x1="2" y1="10" x2="22" y2="10" />
+                  </svg>
+                </div>
+                <div className="period-totals__body">
+                  <div className="period-totals__label">Bank Transfer</div>
+                  <div className="period-totals__sub">{periodTotals.bank.count} timesheet{periodTotals.bank.count !== 1 ? 's' : ''}</div>
+                </div>
+                <div className="period-totals__amount">{formatCurrency(periodTotals.bank.sum)}</div>
+              </div>
+              {periodTotals.bank.sum > 0 && (
+                <>
+                  <div className="period-totals__progress">
+                    <div className="period-totals__progress-fill period-totals__progress-fill--bank"
+                      style={{width: `${(periodTotals.bank.paid.sum / periodTotals.bank.sum) * 100}%`}} />
+                  </div>
+                  <div className="period-totals__split">
+                    <span className="period-totals__paid">✓ Paid {formatCurrency(periodTotals.bank.paid.sum)} <span className="period-totals__count">({periodTotals.bank.paid.count})</span></span>
+                    <span className="period-totals__outstanding">{formatCurrency(periodTotals.bank.outstanding.sum)} outstanding <span className="period-totals__count">({periodTotals.bank.outstanding.count})</span></span>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="period-totals__body">
-              <div className="period-totals__label">Bank Transfer</div>
-              <div className="period-totals__sub">{periodTotals.bank.count} timesheet{periodTotals.bank.count !== 1 ? 's' : ''}</div>
+            <div className="period-totals__bar period-totals__bar--other">
+              <div className="period-totals__head">
+                <div className="period-totals__icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                </div>
+                <div className="period-totals__body">
+                  <div className="period-totals__label">Other</div>
+                  <div className="period-totals__sub">{periodTotals.other.count} timesheet{periodTotals.other.count !== 1 ? 's' : ''}</div>
+                </div>
+                <div className="period-totals__amount">{formatCurrency(periodTotals.other.sum)}</div>
+              </div>
+              {periodTotals.other.sum > 0 && (
+                <>
+                  <div className="period-totals__progress">
+                    <div className="period-totals__progress-fill period-totals__progress-fill--other"
+                      style={{width: `${(periodTotals.other.paid.sum / periodTotals.other.sum) * 100}%`}} />
+                  </div>
+                  <div className="period-totals__split">
+                    <span className="period-totals__paid">✓ Paid {formatCurrency(periodTotals.other.paid.sum)} <span className="period-totals__count">({periodTotals.other.paid.count})</span></span>
+                    <span className="period-totals__outstanding">{formatCurrency(periodTotals.other.outstanding.sum)} outstanding <span className="period-totals__count">({periodTotals.other.outstanding.count})</span></span>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="period-totals__amount">{formatCurrency(periodTotals.bank.sum)}</div>
           </div>
-          <div className="period-totals__bar period-totals__bar--other">
-            <div className="period-totals__icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
+          <div className="period-totals__strip">
+            <div>Period total <strong>{formatCurrency(periodGrandTotal)}</strong></div>
+            <div className="period-totals__strip-right">
+              <span className="period-totals__paid">Paid {formatCurrency(periodPaidTotal)}</span>
+              <span className="period-totals__outstanding">Outstanding {formatCurrency(periodOutstandingTotal)}</span>
             </div>
-            <div className="period-totals__body">
-              <div className="period-totals__label">Other</div>
-              <div className="period-totals__sub">{periodTotals.other.count} timesheet{periodTotals.other.count !== 1 ? 's' : ''}</div>
-            </div>
-            <div className="period-totals__amount">{formatCurrency(periodTotals.other.sum)}</div>
           </div>
         </div>
       )}
@@ -378,7 +443,7 @@ export default function AdminTimesheets() {
 
                   return (
                     <>{/* eslint-disable-next-line react/jsx-key */}
-                      <tr key={group.workerId} className={`worker-group-row ${isExpanded ? 'row-expanded' : ''}`} onClick={() => handleExpandWorker(group.workerId)}>
+                      <tr key={group.workerId} className={`worker-group-row ${isExpanded ? 'row-expanded' : ''} ${group.timesheets.every(t => t.status === 'paid') ? 'row-paid' : ''}`} onClick={() => handleExpandWorker(group.workerId)}>
                         <td>
                           <div style={{display:'flex', alignItems:'center', gap: 8}}>
                             <div className="worker-avatar-sm">
