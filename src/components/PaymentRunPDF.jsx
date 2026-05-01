@@ -202,11 +202,22 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
       return sum + (ts ? Number(ts.total_amount) || 0 : 0);
     }, 0);
 
+    // Per-week methods. If both weeks identical, show one pill; otherwise show both inline.
+    const weekMethods = sortedWeeks.map(week => {
+      const ts = w.weeks[week];
+      return ts ? ts.payment_method : null;
+    });
+    const distinctMethods = [...new Set(weekMethods.filter(Boolean))];
+
     return {
       worker: w.full_name,
       site: w.site_name,
-      method: w.method === 'card' ? 'Bank' : 'Other',
-      methodColor: w.method === 'card' ? [68, 138, 64] : [83, 74, 183],
+      // Encode methods so didDrawCell can render coloured pills:
+      //   single method   -> "card"   or "other"
+      //   mixed (per wk)  -> "card|other" or "other|card" etc.
+      method: distinctMethods.length <= 1
+        ? (distinctMethods[0] || 'other')
+        : weekMethods.map(m => m || '').join('|'),
       weeks: weekCells,
       total: formatCurrency(total),
       // Sign-off column rendered manually by didDrawCell
@@ -245,25 +256,66 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
       textColor: [34, 34, 34],
     },
     columnStyles: {
-      0: { cellWidth: 38 },                // Worker
-      1: { cellWidth: 36 },                // Site
-      2: { cellWidth: 14, halign: 'center' }, // Method
-      3: { cellWidth: 38, halign: 'center' }, // Weeks (£X / £Y)
+      0: { cellWidth: 36 },                // Worker
+      1: { cellWidth: 32 },                // Site
+      2: { cellWidth: 22, halign: 'center' }, // Method (room for one or two pills)
+      3: { cellWidth: 36, halign: 'center' }, // Weeks (£X / £Y)
       4: { cellWidth: 24, halign: 'right', fontStyle: 'bold' }, // Total
       5: { cellWidth: 'auto', halign: 'center' }, // Sign-off
     },
     didParseCell: (data) => {
-      // Method cell: render coloured pill background
+      // Method cell: clear text so didDrawCell can paint pills cleanly
       if (data.section === 'body' && data.column.index === 2) {
-        const r = body[data.row.index];
-        data.cell.styles.fillColor = r.methodColor;
-        data.cell.styles.textColor = [255, 255, 255];
-        data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fontSize = 7;
+        data.cell.text = [''];
       }
     },
     didDrawCell: (data) => {
-      // Sign-off column: replace text with hand-drawable boxes
+      // ============================================================
+      // Method column — render one or two coloured pills inline
+      // ============================================================
+      if (data.section === 'body' && data.column.index === 2) {
+        const r = body[data.row.index];
+        const tokens = (r.method || '').split('|').filter(t => t !== '');
+        // Single pill if only one method, two pills (separated by /) if mixed
+        const items = tokens.length <= 1
+          ? [{ method: tokens[0] || 'other' }]
+          : tokens.map(t => ({ method: t }));
+
+        const PILL_W = 9;
+        const PILL_H = 3.6;
+        const SLASH_W = 2.2;
+        const totalW = items.length * PILL_W + (items.length - 1) * SLASH_W;
+        const startX = data.cell.x + (data.cell.width - totalW) / 2;
+        const cy = data.cell.y + data.cell.height / 2;
+
+        let bx = startX;
+        items.forEach((item, idx) => {
+          const isCard = item.method === 'card';
+          const fill = isCard ? [68, 138, 64] : [83, 74, 183];
+          const label = isCard ? 'Bank' : 'Other';
+
+          doc.setFillColor(...fill);
+          doc.roundedRect(bx, cy - PILL_H / 2, PILL_W, PILL_H, 0.8, 0.8, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(6.2);
+          doc.text(label, bx + PILL_W / 2, cy + 1.1, { align: 'center' });
+
+          bx += PILL_W;
+
+          if (idx < items.length - 1) {
+            doc.setTextColor(140, 140, 140);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.text('/', bx + SLASH_W / 2, cy + 1.1, { align: 'center' });
+            bx += SLASH_W;
+          }
+        });
+      }
+
+      // ============================================================
+      // Sign-off column — render hand-tickable boxes
+      // ============================================================
       if (data.section === 'body' && data.column.index === 5) {
         const txt = data.cell.text[0] || '';
         const types = txt.split('|');
@@ -348,6 +400,72 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
   doc.setFontSize(8);
   doc.text(`${totals.grand.count} ts`, pageWidth - margin - 3, yEnd + 5.7, { align: 'right' });
   yEnd += 9;
+
+  // ============================================================
+  // BLANK ROWS — Additional Entries (Hand Written)
+  // ============================================================
+  const BLANK_ROW_COUNT = 5;
+  const BLANK_ROW_HEIGHT = 9;
+  const BLANK_HEADER_HEIGHT = 7;
+
+  // If not enough room for header + at least 2 blank rows, push to next page
+  if (yEnd + BLANK_HEADER_HEIGHT + BLANK_ROW_HEIGHT * 2 + 18 > pageHeight) {
+    doc.addPage();
+    yEnd = margin;
+  } else {
+    yEnd += 4;
+  }
+
+  // Section header
+  doc.setFillColor(245, 245, 245);
+  doc.rect(margin, yEnd, pageWidth - margin * 2, BLANK_HEADER_HEIGHT, 'F');
+  doc.setTextColor(102, 102, 102);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text('ADDITIONAL ENTRIES — HAND WRITTEN', margin + 3, yEnd + 4.7);
+  yEnd += BLANK_HEADER_HEIGHT;
+
+  // Same column widths as the data table
+  const COL_WIDTHS = [36, 32, 22, 36, 24];   // Worker / Site / Method / Weeks / Total
+  const TABLE_WIDTH = pageWidth - margin * 2;
+  const SIGNOFF_WIDTH = TABLE_WIDTH - COL_WIDTHS.reduce((a, b) => a + b, 0);
+
+  for (let i = 0; i < BLANK_ROW_COUNT; i++) {
+    // If we'd run off the page, paginate
+    if (yEnd + BLANK_ROW_HEIGHT > pageHeight - 18) {
+      doc.addPage();
+      yEnd = margin;
+      // Re-print a small "continued" header so the operator knows where they are
+      doc.setFillColor(245, 245, 245);
+      doc.rect(margin, yEnd, pageWidth - margin * 2, BLANK_HEADER_HEIGHT, 'F');
+      doc.setTextColor(102, 102, 102);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text('ADDITIONAL ENTRIES — HAND WRITTEN (continued)', margin + 3, yEnd + 4.7);
+      yEnd += BLANK_HEADER_HEIGHT;
+    }
+
+    // Row bottom border
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.25);
+    doc.line(margin, yEnd + BLANK_ROW_HEIGHT, pageWidth - margin, yEnd + BLANK_ROW_HEIGHT);
+
+    // Sign-off boxes on the right (one per week, same as data rows)
+    const signoffX = margin + COL_WIDTHS.reduce((a, b) => a + b, 0);
+    const cy = yEnd + BLANK_ROW_HEIGHT / 2;
+    const boxSize = 3.5;
+    const boxGap = 1.5;
+    const boxesTotal = sortedWeeks.length * boxSize + (sortedWeeks.length - 1) * boxGap;
+    let bx = signoffX + (SIGNOFF_WIDTH - boxesTotal) / 2;
+    for (let k = 0; k < sortedWeeks.length; k++) {
+      doc.setDrawColor(60, 60, 60);
+      doc.setLineWidth(0.3);
+      doc.rect(bx, cy - boxSize / 2, boxSize, boxSize);
+      bx += boxSize + boxGap;
+    }
+
+    yEnd += BLANK_ROW_HEIGHT;
+  }
 
   // ============================================================
   // FOOTER LEGEND ON EVERY PAGE
