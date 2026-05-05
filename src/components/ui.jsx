@@ -24,6 +24,28 @@ export function StatusPill({ status, paymentMethod }) {
 }
 
 /**
+ * Clickable status pill — toggles between Outstanding (amber) and Paid (green).
+ * Used in the All Timesheets row. If `queried` is true, shows a red Queried pill instead.
+ */
+export function PaidStatusPill({ paid, queried, onClick, disabled }) {
+  const tone = queried ? 'queried' : (paid ? 'paid' : 'outstanding');
+  const label = queried ? 'Queried' : (paid ? 'Paid' : 'Outstanding');
+  const icon = paid ? '\u2713' : (queried ? '!' : '\u23F3');
+  return (
+    <button
+      type="button"
+      className={`paid-status-pill paid-status-pill--${tone}`}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={paid ? 'Mark as outstanding' : 'Mark as paid'}
+    >
+      <span className="paid-status-pill__icon" aria-hidden="true">{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+/**
  * Owed / Settled tile — replaces the approval pipeline.
  * - Outstanding (status !== 'paid'): amber tile labelled "Owed".
  * - Paid: green tile labelled "Settled".
