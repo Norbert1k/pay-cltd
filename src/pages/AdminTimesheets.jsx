@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { formatDate, formatDateCompact, formatCurrency, STATUSES, STATUS_LABELS, groupTimesheetsByWorker, canMarkPaid } from '../lib/utils';
-import { PageHeader, OwedTile, PaymentPill, LoadingSpinner, EmptyState, StatusPill } from '../components/ui';
+import { PageHeader, PaidStatusPill, PaymentPill, LoadingSpinner, EmptyState, StatusPill } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 import { generatePaymentRunPDF } from '../components/PaymentRunPDF';
 
@@ -475,15 +475,17 @@ export default function AdminTimesheets() {
                           })()}
                         </td>
                         <td>
-                          <OwedTile
-                            paid={allPaid}
-                            queried={anyQueried && !allPaid}
-                            total={formatCurrency(group.totalAmount)}
-                            breakdown={group.weekEndings.length > 1 ? group.weekEndings.map(we => {
-                              const ts = group.timesheets.find(t => t.week_ending === we);
-                              return ts ? formatCurrency(Number(ts.total_amount) || 0) : '—';
-                            }).join(' / ') : null}
-                          />
+                          <div className="total-cell">
+                            <strong>{formatCurrency(group.totalAmount)}</strong>
+                            {group.weekEndings.length > 1 && (
+                              <div className="total-cell__breakdown">
+                                {group.weekEndings.map(we => {
+                                  const ts = group.timesheets.find(t => t.week_ending === we);
+                                  return ts ? formatCurrency(Number(ts.total_amount) || 0) : '—';
+                                }).join(' / ')}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <div className="payment-pills">
@@ -493,16 +495,18 @@ export default function AdminTimesheets() {
                           </div>
                         </td>
                         <td onClick={e => e.stopPropagation()}>
-                          {canMarkPaid(profile) && (
-                            allPaid ? (
-                              <button className="btn btn--sm btn--outline" onClick={() => group.timesheets.forEach(ts => handleStatusChange(ts.id, 'submitted'))} title="Undo paid status">
-                                Undo
-                              </button>
-                            ) : (
-                              <button className="btn btn--sm btn--primary" onClick={() => group.timesheets.filter(ts => ts.status !== 'paid').forEach(ts => handleStatusChange(ts.id, 'paid'))}>Pay
-                              </button>
-                            )
-                          )}
+                          <PaidStatusPill
+                            paid={allPaid}
+                            queried={anyQueried && !allPaid}
+                            disabled={!canMarkPaid(profile)}
+                            onClick={() => {
+                              if (allPaid) {
+                                group.timesheets.forEach(ts => handleStatusChange(ts.id, 'submitted'));
+                              } else {
+                                group.timesheets.filter(ts => ts.status !== 'paid').forEach(ts => handleStatusChange(ts.id, 'paid'));
+                              }
+                            }}
+                          />
                         </td>
                         <td>
                           <div className="action-btns" onClick={e => e.stopPropagation()}>
@@ -674,25 +678,31 @@ export default function AdminTimesheets() {
                       {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => <PaymentPill key={m} method={m} />)}
                     </div>
                     <div className="timesheet-card__row">
-                      <OwedTile
-                        paid={allPaid}
-                        queried={anyQueried && !allPaid}
-                        total={formatCurrency(group.totalAmount)}
-                        breakdown={group.weekEndings.length > 1 ? group.weekEndings.map(we => {
-                          const ts = group.timesheets.find(t => t.week_ending === we);
-                          return ts ? formatCurrency(Number(ts.total_amount) || 0) : '—';
-                        }).join(' / ') : null}
-                      />
-                      {canMarkPaid(profile) && (
-                        <div onClick={e => e.stopPropagation()}>
-                          {allPaid ? (
-                            <button className="btn btn--sm btn--outline" onClick={() => group.timesheets.forEach(ts => handleStatusChange(ts.id, 'submitted'))}>Undo</button>
-                          ) : (
-                            <button className="btn btn--sm btn--primary" onClick={() => group.timesheets.filter(ts => ts.status !== 'paid').forEach(ts => handleStatusChange(ts.id, 'paid'))}>Pay
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      <div className="timesheet-card__amount">
+                        {formatCurrency(group.totalAmount)}
+                        {group.weekEndings.length > 1 && (
+                          <div className="total-cell__breakdown">
+                            {group.weekEndings.map(we => {
+                              const ts = group.timesheets.find(t => t.week_ending === we);
+                              return ts ? formatCurrency(Number(ts.total_amount) || 0) : '—';
+                            }).join(' / ')}
+                          </div>
+                        )}
+                      </div>
+                      <div onClick={e => e.stopPropagation()}>
+                        <PaidStatusPill
+                          paid={allPaid}
+                          queried={anyQueried && !allPaid}
+                          disabled={!canMarkPaid(profile)}
+                          onClick={() => {
+                            if (allPaid) {
+                              group.timesheets.forEach(ts => handleStatusChange(ts.id, 'submitted'));
+                            } else {
+                              group.timesheets.filter(ts => ts.status !== 'paid').forEach(ts => handleStatusChange(ts.id, 'paid'));
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
 
