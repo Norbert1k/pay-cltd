@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { formatDate, formatCurrency, TRADES } from '../lib/utils';
-import { PageHeader, StatusPill, ApprovalPipeline, PaymentPill, LoadingSpinner } from '../components/ui';
+import { PageHeader, StatusPill, PaymentPill, LoadingSpinner } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 
 export default function AdminWorkerDetail() {
@@ -782,7 +782,7 @@ function TimesheetHistory({ timesheets, expandedMonths, setExpandedMonths, initi
                           </div>
                           <div className="my-ts-row__field">
                             <span className="my-ts-row__label">Approval:</span>
-                            <ApprovalPipeline status={ts.status} />
+                            <StatusPill status={ts.status} paymentMethod={ts.payment_method} />
                           </div>
                           <div className="my-ts-row__field">
                             <span className="my-ts-row__label">Payment:</span>
