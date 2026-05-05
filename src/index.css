@@ -4413,3 +4413,95 @@ a {
   color: var(--text-muted);
   font-size: 0.75rem;
 }
+
+/* ============================================================
+   OWED TILE — admin timesheets row, replaces approval pipeline
+   ============================================================ */
+.owed-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid;
+  min-width: 0;
+}
+
+.owed-tile__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.owed-tile__label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.owed-tile__amount {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.owed-tile__breakdown {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Owed (outstanding) — amber */
+.owed-tile--owed {
+  background: rgba(186, 117, 23, 0.10);
+  border-color: rgba(186, 117, 23, 0.40);
+}
+.owed-tile--owed .owed-tile__label { color: #8a5810; }
+.owed-tile--owed .owed-tile__amount { color: #BA7517; }
+[data-theme="dark"] .owed-tile--owed {
+  background: rgba(239, 159, 39, 0.10);
+  border-color: rgba(239, 159, 39, 0.45);
+}
+[data-theme="dark"] .owed-tile--owed .owed-tile__label,
+[data-theme="dark"] .owed-tile--owed .owed-tile__amount { color: #EF9F27; }
+
+/* Paid (settled) — green */
+.owed-tile--paid {
+  background: rgba(68, 138, 64, 0.18);
+  border-color: rgba(68, 138, 64, 0.50);
+}
+.owed-tile--paid .owed-tile__label { color: #2d6329; }
+.owed-tile--paid .owed-tile__amount { color: var(--text-primary); }
+[data-theme="dark"] .owed-tile--paid {
+  background: rgba(151, 196, 89, 0.18);
+  border-color: rgba(151, 196, 89, 0.50);
+}
+[data-theme="dark"] .owed-tile--paid .owed-tile__label { color: #97C459; }
+
+/* Queried — red */
+.owed-tile--queried {
+  background: rgba(163, 45, 45, 0.10);
+  border-color: rgba(163, 45, 45, 0.40);
+}
+.owed-tile--queried .owed-tile__label { color: #791F1F; }
+.owed-tile--queried .owed-tile__amount { color: #A32D2D; }
+[data-theme="dark"] .owed-tile--queried {
+  background: rgba(240, 149, 149, 0.10);
+  border-color: rgba(240, 149, 149, 0.40);
+}
+[data-theme="dark"] .owed-tile--queried .owed-tile__label,
+[data-theme="dark"] .owed-tile--queried .owed-tile__amount { color: #F09595; }
+
+/* Detail card paid tint */
+.ts-detail-card--paid {
+  background: rgba(68, 138, 64, 0.06);
+  border-left: 3px solid #448a40;
+}
+[data-theme="dark"] .ts-detail-card--paid {
+  background: rgba(151, 196, 89, 0.07);
+}
