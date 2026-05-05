@@ -4508,3 +4508,92 @@ a {
 [data-theme="dark"] .ts-detail-card--paid {
   background: rgba(151, 196, 89, 0.07);
 }
+
+/* ============================================================
+   PAID STATUS PILL — clickable, toggles between
+   amber Outstanding / green Paid (Option 4 design)
+   ============================================================ */
+.paid-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: 1px solid;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s, transform 0.05s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.paid-status-pill:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.paid-status-pill:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.paid-status-pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.paid-status-pill__icon {
+  font-size: 0.85rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Outstanding — amber */
+.paid-status-pill--outstanding {
+  background: rgba(186, 117, 23, 0.15);
+  color: #BA7517;
+  border-color: rgba(186, 117, 23, 0.50);
+}
+[data-theme="dark"] .paid-status-pill--outstanding {
+  background: rgba(239, 159, 39, 0.15);
+  color: #EF9F27;
+  border-color: rgba(239, 159, 39, 0.50);
+}
+
+/* Paid — green */
+.paid-status-pill--paid {
+  background: rgba(68, 138, 64, 0.18);
+  color: #2d6329;
+  border-color: rgba(68, 138, 64, 0.55);
+}
+[data-theme="dark"] .paid-status-pill--paid {
+  background: rgba(151, 196, 89, 0.18);
+  color: #97C459;
+  border-color: rgba(151, 196, 89, 0.55);
+}
+
+/* Queried — red */
+.paid-status-pill--queried {
+  background: rgba(163, 45, 45, 0.15);
+  color: #A32D2D;
+  border-color: rgba(163, 45, 45, 0.50);
+}
+[data-theme="dark"] .paid-status-pill--queried {
+  background: rgba(240, 149, 149, 0.15);
+  color: #F09595;
+  border-color: rgba(240, 149, 149, 0.50);
+}
+
+/* Total cell with optional per-week breakdown */
+.total-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.total-cell__breakdown {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  white-space: nowrap;
+}
