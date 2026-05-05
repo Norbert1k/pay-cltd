@@ -44,33 +44,27 @@ export function formatDateTime(dateStr) {
 }
 
 // ============================================================
-// STATUSES — 3-stage approval workflow
+// STATUSES — Simplified: outstanding (submitted) / paid / queried
 // ============================================================
 export const STATUS_COLORS = {
-  submitted: '#378ADD',
-  approved_accounts: '#BA7517',
-  approved_director: '#448a40',
-  paid: '#2d6329',
-  queried: '#A32D2D',
+  submitted: '#BA7517',  // amber — same colour as "outstanding" in the period bars
+  paid: '#2d6329',       // green
+  queried: '#A32D2D',    // red
 };
 
 export const STATUS_LABELS = {
-  submitted: 'Submitted',
-  approved_accounts: 'Accounts Approved',
-  approved_director: 'Director Approved',
+  submitted: 'Outstanding',
   paid: 'Paid',
   queried: 'Queried',
 };
 
 export const STATUS_LABELS_SHORT = {
-  submitted: 'Submitted',
-  approved_accounts: 'Accounts',
-  approved_director: 'Director',
+  submitted: 'Outstanding',
   paid: 'Paid',
   queried: 'Queried',
 };
 
-export const STATUSES = ['submitted', 'approved_accounts', 'approved_director', 'paid', 'queried'];
+export const STATUSES = ['submitted', 'paid', 'queried'];
 
 // ============================================================
 // ROLES
@@ -159,19 +153,15 @@ export function groupTimesheetsByWorker(timesheets) {
   return Object.values(map).sort((a, b) => (a.worker?.full_name || '').localeCompare(b.worker?.full_name || ''));
 }
 
-// Check if user can approve at a given stage
-export function canApprove(profile, stage) {
+// Anyone with admin access can mark timesheets paid or queried
+export function canMarkPaid(profile) {
   if (!profile) return false;
-  if (stage === 'approved_accounts') {
-    return ['admin', 'accountant', 'director'].includes(profile.role);
-  }
-  if (stage === 'approved_director') {
-    return ['admin', 'director'].includes(profile.role);
-  }
-  if (stage === 'paid') {
-    return ['admin', 'accountant', 'director'].includes(profile.role);
-  }
   return ['admin', 'accountant', 'director'].includes(profile.role);
+}
+
+// Backwards-compat shim — kept so any lingering callers don't crash before file-by-file cleanup
+export function canApprove(profile) {
+  return canMarkPaid(profile);
 }
 
 // Check if user is admin-level (admin, accountant, or director)
