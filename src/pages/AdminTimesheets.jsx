@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { formatDate, formatDateCompact, formatCurrency, STATUSES, STATUS_LABELS, groupTimesheetsByWorker, canApprove } from '../lib/utils';
-import { PageHeader, ApprovalPipeline, ApprovalControls, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
+import { formatDate, formatDateCompact, formatCurrency, STATUSES, STATUS_LABELS, groupTimesheetsByWorker, canMarkPaid } from '../lib/utils';
+import { PageHeader, OwedTile, PaymentPill, LoadingSpinner, EmptyState, StatusPill } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 import { generatePaymentRunPDF } from '../components/PaymentRunPDF';
 
@@ -129,33 +129,22 @@ export default function AdminTimesheets() {
     const ts = timesheets.find(t => t.id === tsId);
     if (!ts) return;
 
-    // Enforce approval order: accounts → director → paid
-    const currentStatus = ts.status;
-    if (newStatus === 'approved_director' && currentStatus !== 'approved_accounts') {
-      alert('Accounts must approve first before Director can approve.');
-      return;
-    }
-    if (newStatus === 'paid' && currentStatus !== 'approved_director') {
-      alert('Director must approve before marking as Paid.');
-      return;
-    }
+    // Allowed values: 'paid', 'queried', or 'submitted' (un-pay / clear query).
+    if (!['paid', 'queried', 'submitted'].includes(newStatus)) return;
 
     const updates = { status: newStatus, reviewed_at: new Date().toISOString(), reviewed_by: profile.id };
     if (statusNote) updates.admin_notes = statusNote;
+    if (newStatus !== 'queried') updates.admin_notes = null; // Clear admin_notes when un-querying or paying
 
     await supabase.from('timesheets').update(updates).eq('id', tsId);
 
     // Create alert for worker
-    if (ts && ['approved_accounts', 'approved_director', 'paid', 'queried'].includes(newStatus)) {
+    if (['paid', 'queried'].includes(newStatus)) {
       const titles = {
-        approved_accounts: 'Accounts Approved',
-        approved_director: 'Director Approved',
         paid: 'Payment Processed',
         queried: 'Timesheet Query — Action Required',
       };
       const messages = {
-        approved_accounts: `Your timesheet for WE ${formatDate(ts.week_ending)} has been approved by Accounts.`,
-        approved_director: `Your timesheet for WE ${formatDate(ts.week_ending)} has been approved by a Director.`,
         paid: `Payment of ${formatCurrency(ts.total_amount)} for WE ${formatDate(ts.week_ending)} has been processed.`,
         queried: `There is a query on your timesheet for WE ${formatDate(ts.week_ending)}. ${statusNote ? statusNote : 'Please review your submission.'}`,
       };
@@ -429,16 +418,18 @@ export default function AdminTimesheets() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Worker</th><th>Week(s)</th><th>Site</th><th>Total</th><th>Payment</th><th>Approval</th><th></th>
+                  <th>Worker</th><th>Week(s)</th><th>Site</th><th>Total</th><th>Payment</th><th>Status</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {grouped.map(group => {
                   const isExpanded = expandedWorker === group.workerId;
-                  const statusOrder = ['queried', 'submitted', 'approved_accounts', 'approved_director', 'paid'];
+                  const statusOrder = ['queried', 'submitted', 'paid'];
                   const worstStatus = group.timesheets.reduce((worst, ts) => {
                     return statusOrder.indexOf(ts.status) < statusOrder.indexOf(worst) ? ts.status : worst;
                   }, 'paid');
+                  const allPaid = group.timesheets.every(t => t.status === 'paid');
+                  const anyQueried = group.timesheets.some(t => t.status === 'queried');
                   const sites = [...new Set(group.timesheets.map(t => t.sites?.site_name).filter(Boolean))];
 
                   return (
@@ -483,7 +474,17 @@ export default function AdminTimesheets() {
                             return refs.length > 0 ? <><br /><span className="text-muted text-sm">{refs.join(', ')}</span></> : null;
                           })()}
                         </td>
-                        <td><strong>{formatCurrency(group.totalAmount)}</strong></td>
+                        <td>
+                          <OwedTile
+                            paid={allPaid}
+                            queried={anyQueried && !allPaid}
+                            total={formatCurrency(group.totalAmount)}
+                            breakdown={group.weekEndings.map(we => {
+                              const ts = group.timesheets.find(t => t.week_ending === we);
+                              return ts ? formatCurrency(Number(ts.total_amount) || 0) : '—';
+                            }).join(' / ')}
+                          />
+                        </td>
                         <td>
                           <div className="payment-pills">
                             {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => (
@@ -491,7 +492,23 @@ export default function AdminTimesheets() {
                             ))}
                           </div>
                         </td>
-                        <td><ApprovalPipeline status={worstStatus} compact /></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          {canMarkPaid(profile) && (
+                            allPaid ? (
+                              <button className="btn btn--sm btn--outline" onClick={() => group.timesheets.forEach(ts => handleStatusChange(ts.id, 'submitted'))} title="Undo paid status">
+                                Undo
+                              </button>
+                            ) : (
+                              <button className="btn btn--sm btn--primary" onClick={() => group.timesheets.filter(ts => ts.status !== 'paid').forEach(ts => handleStatusChange(ts.id, 'paid'))}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <path d="M17 4H9v16h7a3 3 0 0 0 0-6H9" />
+                                  <path d="M7 10h8" />
+                                </svg>
+                                PAY
+                              </button>
+                            )
+                          )}
+                        </td>
                         <td>
                           <div className="action-btns" onClick={e => e.stopPropagation()}>
                             {group.timesheets.map(ts => (
@@ -521,7 +538,7 @@ export default function AdminTimesheets() {
                           <td colSpan={7}>
                             <div className="worker-detail-expanded">
                               {group.timesheets.map(ts => (
-                                <div key={ts.id} className="ts-detail-card">
+                                <div key={ts.id} className={`ts-detail-card ${ts.status === 'paid' ? 'ts-detail-card--paid' : ''}`}>
                                   <div className="ts-detail-card__header">
                                     <strong>Week Ending: {formatDate(ts.week_ending)}</strong>
                                     <span>
@@ -529,7 +546,7 @@ export default function AdminTimesheets() {
                                       {ts.sites?.project_ref && <span className="text-muted text-sm" style={{marginLeft: 6}}>({ts.sites.project_ref})</span>}
                                       {' '}&mdash; {formatCurrency(ts.total_amount)}
                                     </span>
-                                    <ApprovalPipeline status={ts.status} />
+                                    <StatusPill status={ts.status} paymentMethod={ts.payment_method} />
                                   </div>
 
                                   {expandedDays[ts.id] && expandedDays[ts.id].length > 0 && (
@@ -554,13 +571,30 @@ export default function AdminTimesheets() {
                                   )}
 
                                   <div className="ts-detail-card__actions">
-                                    <ApprovalControls
-                                      status={ts.status}
-                                      onStatusChange={(newStatus) => handleStatusChange(ts.id, newStatus)}
-                                      canApproveAccounts={['admin', 'accountant', 'director'].includes(profile?.role)}
-                                      canApproveDirector={['admin', 'director'].includes(profile?.role)}
-                                      canMarkPaid={['admin', 'accountant', 'director'].includes(profile?.role)}
-                                    />
+                                    {canMarkPaid(profile) && (
+                                      <div style={{display:'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center'}}>
+                                        {ts.status !== 'paid' ? (
+                                          <button className="btn btn--sm btn--primary" onClick={() => handleStatusChange(ts.id, 'paid')}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 4H9v16h7a3 3 0 0 0 0-6H9" /><path d="M7 10h8" /></svg>
+                                            Mark Paid
+                                          </button>
+                                        ) : (
+                                          <button className="btn btn--sm btn--outline" onClick={() => handleStatusChange(ts.id, 'submitted')}>
+                                            Undo Paid
+                                          </button>
+                                        )}
+                                        {ts.status !== 'queried' && ts.status !== 'paid' && (
+                                          <button className="btn btn--sm btn--outline" onClick={() => handleStatusChange(ts.id, 'queried')} style={{borderColor: '#A32D2D', color: '#A32D2D'}}>
+                                            Raise Query
+                                          </button>
+                                        )}
+                                        {ts.status === 'queried' && (
+                                          <button className="btn btn--sm btn--outline" onClick={() => handleStatusChange(ts.id, 'submitted')}>
+                                            Clear Query
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
                                     <textarea value={statusNote} onChange={(e) => setStatusNote(e.target.value)}
                                       placeholder="Notes (visible to worker if queried)..." className="form-input" rows={2} />
                                     <div style={{display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8}}>
@@ -609,10 +643,12 @@ export default function AdminTimesheets() {
           <div className="admin-cards-mobile">
             {grouped.map(group => {
               const isExpanded = expandedWorker === group.workerId;
-              const statusOrder = ['queried', 'submitted', 'approved_accounts', 'approved_director', 'paid'];
+              const statusOrder = ['queried', 'submitted', 'paid'];
               const worstStatus = group.timesheets.reduce((worst, ts) => {
                 return statusOrder.indexOf(ts.status) < statusOrder.indexOf(worst) ? ts.status : worst;
               }, 'paid');
+              const allPaid = group.timesheets.every(t => t.status === 'paid');
+              const anyQueried = group.timesheets.some(t => t.status === 'queried');
 
               return (
                 <div key={group.workerId} className={`timesheet-card timesheet-card--admin ${isExpanded ? 'timesheet-card--expanded' : ''}`}>
@@ -645,15 +681,34 @@ export default function AdminTimesheets() {
                       {[...new Set(group.timesheets.map(t => t.payment_method))].map(m => <PaymentPill key={m} method={m} />)}
                     </div>
                     <div className="timesheet-card__row">
-                      <ApprovalPipeline status={worstStatus} compact />
-                      <div className="timesheet-card__amount">{formatCurrency(group.totalAmount)}</div>
+                      <OwedTile
+                        paid={allPaid}
+                        queried={anyQueried && !allPaid}
+                        total={formatCurrency(group.totalAmount)}
+                        breakdown={group.weekEndings.map(we => {
+                          const ts = group.timesheets.find(t => t.week_ending === we);
+                          return ts ? formatCurrency(Number(ts.total_amount) || 0) : '—';
+                        }).join(' / ')}
+                      />
+                      {canMarkPaid(profile) && (
+                        <div onClick={e => e.stopPropagation()}>
+                          {allPaid ? (
+                            <button className="btn btn--sm btn--outline" onClick={() => group.timesheets.forEach(ts => handleStatusChange(ts.id, 'submitted'))}>Undo</button>
+                          ) : (
+                            <button className="btn btn--sm btn--primary" onClick={() => group.timesheets.filter(ts => ts.status !== 'paid').forEach(ts => handleStatusChange(ts.id, 'paid'))}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 4H9v16h7a3 3 0 0 0 0-6H9" /><path d="M7 10h8" /></svg>
+                              PAY
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {isExpanded && (
                     <div className="timesheet-card__expanded">
                       {group.timesheets.map(ts => (
-                        <div key={ts.id} className="ts-detail-card">
+                        <div key={ts.id} className={`ts-detail-card ${ts.status === 'paid' ? 'ts-detail-card--paid' : ''}`}>
                           <div className="ts-detail-card__header">
                             <strong>Week Ending: {formatDate(ts.week_ending)}</strong>
                             <span>
@@ -661,7 +716,7 @@ export default function AdminTimesheets() {
                               {ts.sites?.project_ref && <span className="text-muted text-sm" style={{marginLeft: 6}}>({ts.sites.project_ref})</span>}
                               {' '}&mdash; {formatCurrency(ts.total_amount)}
                             </span>
-                            <ApprovalPipeline status={ts.status} />
+                            <StatusPill status={ts.status} paymentMethod={ts.payment_method} />
                           </div>
 
                           {expandedDays[ts.id] && expandedDays[ts.id].length > 0 && (
@@ -688,13 +743,30 @@ export default function AdminTimesheets() {
                           )}
 
                           <div className="ts-detail-card__actions">
-                            <ApprovalControls
-                              status={ts.status}
-                              onStatusChange={(newStatus) => handleStatusChange(ts.id, newStatus)}
-                              canApproveAccounts={['admin', 'accountant', 'director'].includes(profile?.role)}
-                              canApproveDirector={['admin', 'director'].includes(profile?.role)}
-                              canMarkPaid={['admin', 'accountant', 'director'].includes(profile?.role)}
-                            />
+                            {canMarkPaid(profile) && (
+                              <div style={{display:'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center'}}>
+                                {ts.status !== 'paid' ? (
+                                  <button className="btn btn--sm btn--primary" onClick={() => handleStatusChange(ts.id, 'paid')}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 4H9v16h7a3 3 0 0 0 0-6H9" /><path d="M7 10h8" /></svg>
+                                    Mark Paid
+                                  </button>
+                                ) : (
+                                  <button className="btn btn--sm btn--outline" onClick={() => handleStatusChange(ts.id, 'submitted')}>
+                                    Undo Paid
+                                  </button>
+                                )}
+                                {ts.status !== 'queried' && ts.status !== 'paid' && (
+                                  <button className="btn btn--sm btn--outline" onClick={() => handleStatusChange(ts.id, 'queried')} style={{borderColor: '#A32D2D', color: '#A32D2D'}}>
+                                    Raise Query
+                                  </button>
+                                )}
+                                {ts.status === 'queried' && (
+                                  <button className="btn btn--sm btn--outline" onClick={() => handleStatusChange(ts.id, 'submitted')}>
+                                    Clear Query
+                                  </button>
+                                )}
+                              </div>
+                            )}
                             <textarea value={statusNote} onChange={(e) => setStatusNote(e.target.value)}
                               placeholder="Notes (visible to worker if queried)..." className="form-input" rows={2} />
                             <div className="action-btns" style={{flexWrap: 'wrap'}}>
