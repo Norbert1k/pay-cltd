@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { getNextSunday, formatDate, formatCurrency } from '../lib/utils';
-import { PageHeader, StatusPill, ApprovalPipeline, PaymentPill, LoadingSpinner } from '../components/ui';
+import { PageHeader, StatusPill, PaymentPill, LoadingSpinner } from '../components/ui';
 
 export default function Dashboard() {
   const { profile } = useAuth();
@@ -304,7 +304,7 @@ export default function Dashboard() {
                     </div>
                     <div className="my-ts-row__field">
                       <span className="my-ts-row__label">Approval:</span>
-                      <ApprovalPipeline status={ts.status} />
+                      <StatusPill status={ts.status} paymentMethod={ts.payment_method} />
                     </div>
                     <div className="my-ts-row__field">
                       <span className="my-ts-row__label">Payment:</span>
