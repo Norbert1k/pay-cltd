@@ -3,7 +3,6 @@ import { STATUS_COLORS, PAYMENT_COLORS, STATUS_LABELS, PAYMENT_LABELS } from '..
 export function StatusPill({ status, paymentMethod }) {
   const color = STATUS_COLORS[status] || '#808080';
   let label = STATUS_LABELS[status] || status;
-  const isApproved = status === 'approved_accounts' || status === 'approved_director';
   const isPaid = status === 'paid';
 
   // When paid, show "Paid via Bank Transfer" / "Paid via Other" if we know the method
@@ -14,7 +13,7 @@ export function StatusPill({ status, paymentMethod }) {
 
   return (
     <span className="pill" style={{ background: color + '18', color, borderColor: color + '40' }}>
-      {(isApproved || isPaid) && (
+      {isPaid && (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: 3 }}>
           <polyline points="20 6 9 17 4 12" />
         </svg>
@@ -24,147 +23,23 @@ export function StatusPill({ status, paymentMethod }) {
   );
 }
 
-// 3-stage approval pipeline — read-only display version
-export function ApprovalPipeline({ status, compact }) {
-  const order = ['submitted', 'approved_accounts', 'approved_director', 'paid'];
-  const currentIdx = order.indexOf(status);
-
-  if (status === 'queried') {
-    return (
-      <div className={`approval-pipeline ${compact ? 'approval-pipeline--compact' : ''}`}>
-        <div className="approval-box approval-box--queried">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-          <span>Queried</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'submitted') {
-    return (
-      <div className={`approval-pipeline ${compact ? 'approval-pipeline--compact' : ''}`}>
-        <div className="approval-box approval-box--submitted">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M12 5v14M5 12l7-7 7 7" />
-          </svg>
-          <span>Submitted</span>
-        </div>
-        <div className="approval-box approval-box--waiting"><div className="approval-box__empty" /><span>Accounts</span></div>
-        <div className="approval-box approval-box--waiting"><div className="approval-box__empty" /><span>Director</span></div>
-        <div className="approval-box approval-box--waiting"><div className="approval-box__empty" /><span>Paid</span></div>
-      </div>
-    );
-  }
-
-  const stages = [
-    { key: 'approved_accounts', label: 'Accounts', icon: 'check' },
-    { key: 'approved_director', label: 'Director', icon: 'check' },
-    { key: 'paid', label: 'Paid', icon: 'pound' },
-  ];
-
+/**
+ * Owed / Settled tile — replaces the approval pipeline.
+ * - Outstanding (status !== 'paid'): amber tile labelled "Owed".
+ * - Paid: green tile labelled "Settled".
+ * - Queried: red tile labelled "Queried".
+ * - Optional `breakdown` shows per-week split ("£780 / £910").
+ */
+export function OwedTile({ paid, total, breakdown, queried }) {
+  const tone = queried ? 'queried' : (paid ? 'paid' : 'owed');
+  const label = queried ? 'Queried' : (paid ? '✓ Settled' : 'Owed');
   return (
-    <div className={`approval-pipeline ${compact ? 'approval-pipeline--compact' : ''}`}>
-      {stages.map((stage) => {
-        const stageIdx = order.indexOf(stage.key);
-        const isComplete = stageIdx <= currentIdx;
-        return (
-          <div key={stage.key} className={`approval-box ${isComplete ? 'approval-box--complete' : 'approval-box--waiting'}`}>
-            <div className="approval-box__check">
-              {isComplete ? (
-                stage.icon === 'pound' ? (
-                  <span className="approval-box__pound">&pound;</span>
-                ) : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )
-              ) : (
-                <div className="approval-box__empty" />
-              )}
-            </div>
-            <span>{stage.label}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// Interactive approval pipeline — clickable tick boxes for admin
-export function ApprovalControls({ status, onStatusChange, canApproveAccounts, canApproveDirector, canMarkPaid }) {
-  const order = ['submitted', 'approved_accounts', 'approved_director', 'paid'];
-  const currentIdx = order.indexOf(status);
-
-  const stages = [
-    { key: 'approved_accounts', label: 'Accounts Approved', icon: 'check', enabled: canApproveAccounts },
-    { key: 'approved_director', label: 'Director Approved', icon: 'check', enabled: canApproveDirector },
-    { key: 'paid', label: 'Paid', icon: 'pound', enabled: canMarkPaid },
-  ];
-
-  const handleToggle = (stageKey) => {
-    const stageIdx = order.indexOf(stageKey);
-    const isComplete = stageIdx <= currentIdx;
-    if (isComplete) {
-      // Un-toggle: go back to previous stage
-      const prevStage = order[stageIdx - 1] || 'submitted';
-      onStatusChange(prevStage);
-    } else {
-      // Toggle on
-      onStatusChange(stageKey);
-    }
-  };
-
-  const isQueried = status === 'queried';
-
-  return (
-    <div className="approval-controls">
-      <div className="approval-controls__stages">
-        {stages.map((stage) => {
-          const stageIdx = order.indexOf(stage.key);
-          const isComplete = !isQueried && stageIdx <= currentIdx;
-          const isDisabled = !stage.enabled;
-
-          return (
-            <button
-              key={stage.key}
-              className={`approval-checkbox ${isComplete ? 'approval-checkbox--complete' : 'approval-checkbox--pending'} ${isDisabled ? 'approval-checkbox--disabled' : ''}`}
-              onClick={() => !isDisabled && handleToggle(stage.key)}
-              disabled={isDisabled}
-              title={isDisabled ? 'You don\'t have permission for this action' : (isComplete ? `Undo: ${stage.label}` : stage.label)}
-            >
-              <div className="approval-checkbox__box">
-                {isComplete ? (
-                  stage.icon === 'pound' ? (
-                    <span className="approval-checkbox__pound">&pound;</span>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )
-                ) : null}
-              </div>
-              <span>{stage.label}</span>
-            </button>
-          );
-        })}
+    <div className={`owed-tile owed-tile--${tone}`}>
+      <div className="owed-tile__main">
+        <div className="owed-tile__label">{label}</div>
+        <div className="owed-tile__amount">{total}</div>
       </div>
-
-      {/* Query button separate */}
-      <button
-        className={`approval-checkbox ${isQueried ? 'approval-checkbox--queried' : 'approval-checkbox--query-idle'}`}
-        onClick={() => onStatusChange(isQueried ? 'submitted' : 'queried')}
-      >
-        <div className="approval-checkbox__box approval-checkbox__box--query">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-        </div>
-        <span>Query</span>
-      </button>
+      {breakdown && <div className="owed-tile__breakdown">{breakdown}</div>}
     </div>
   );
 }
@@ -219,10 +94,14 @@ export function PageHeader({ title, subtitle, actions }) {
   );
 }
 
-// Query badge — shows on worker dashboard when they have queries
 export function QueryBadge({ count }) {
   if (!count) return null;
-  return (
-    <span className="query-badge">{count}</span>
-  );
+  return <span className="query-badge">{count}</span>;
 }
+
+// ============================================================
+// Backwards-compat stubs — render nothing, but keep imports valid.
+// Safe to remove once every caller has been updated.
+// ============================================================
+export function ApprovalPipeline() { return null; }
+export function ApprovalControls() { return null; }
