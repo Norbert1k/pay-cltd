@@ -4418,14 +4418,15 @@ a {
    OWED TILE — admin timesheets row, replaces approval pipeline
    ============================================================ */
 .owed-tile {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 12px;
+  padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid;
   min-width: 0;
+  white-space: nowrap;
 }
 
 .owed-tile__main {
@@ -4440,6 +4441,7 @@ a {
   letter-spacing: 0.5px;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .owed-tile__amount {
@@ -4447,6 +4449,7 @@ a {
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .owed-tile__breakdown {
