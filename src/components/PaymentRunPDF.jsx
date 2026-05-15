@@ -264,18 +264,21 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
       5: { cellWidth: 'auto', halign: 'center' }, // Sign-off
     },
     didParseCell: (data) => {
-      // Method cell: clear text so didDrawCell can paint pills cleanly
-      if (data.section === 'body' && data.column.index === 2) {
+      // Method + Sign-off: clear the rendered text so didDrawCell can paint
+      if (data.section === 'body' && (data.column.index === 2 || data.column.index === 5)) {
         data.cell.text = [''];
       }
     },
     didDrawCell: (data) => {
+      if (data.section !== 'body') return;
+      if (!data.row?.raw || !Array.isArray(data.row.raw)) return;
+
       // ============================================================
       // Method column — render one or two coloured pills inline
       // ============================================================
-      if (data.section === 'body' && data.column.index === 2) {
-        const r = body[data.row.index];
-        const tokens = (r.method || '').split('|').filter(t => t !== '');
+      if (data.column.index === 2) {
+        const encoded = data.row.raw[2] || '';
+        const tokens = String(encoded).split('|').filter(t => t !== '');
         // Single pill if only one method, two pills (separated by /) if mixed
         const items = tokens.length <= 1
           ? [{ method: tokens[0] || 'other' }]
@@ -316,25 +319,17 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
       // ============================================================
       // Sign-off column — render hand-tickable boxes
       // ============================================================
-      if (data.section === 'body' && data.column.index === 5) {
-        const txt = data.cell.text[0] || '';
-        const types = txt.split('|');
+      if (data.column.index === 5) {
+        const encoded = data.row.raw[5] || '';
+        const types = String(encoded).split('|').filter(t => t !== '');
+        if (types.length === 0) return;
+
         const cx = data.cell.x + data.cell.width / 2;
         const cy = data.cell.y + data.cell.height / 2;
         const boxSize = 3.5;
         const gap = 1.5;
         const totalWidth = types.length * boxSize + (types.length - 1) * gap;
         let bx = cx - totalWidth / 2;
-
-        // Clear the text first
-        doc.setFillColor(255, 255, 255);
-        doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
-
-        // Draw row separator we just wiped
-        doc.setDrawColor(240, 240, 240);
-        doc.setLineWidth(0.2);
-        doc.line(data.cell.x, data.cell.y + data.cell.height,
-                 data.cell.x + data.cell.width, data.cell.y + data.cell.height);
 
         types.forEach(t => {
           if (t === 'box') {
