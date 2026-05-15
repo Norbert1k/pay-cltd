@@ -4597,3 +4597,61 @@ a {
   font-weight: 400;
   white-space: nowrap;
 }
+
+/* ============================================================
+   WEEK PILLS — one per week, with small date label above
+   ============================================================ */
+.week-pills {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.week-pills__item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+
+.week-pills__date {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.week-pills__missing {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px dashed var(--border-color);
+  opacity: 0.5;
+}
+
+/* Mobile: stack pills vertically inside the card */
+.week-pills--mobile {
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+.week-pills--mobile .week-pills__item {
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+}
+.week-pills--mobile .week-pills__date {
+  font-size: 0.65rem;
+}
+
+/* On very small screens or in dense layouts: ensure pills don't overflow */
+@media (max-width: 600px) {
+  .week-pills {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
