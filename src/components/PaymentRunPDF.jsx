@@ -220,8 +220,16 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
         : weekMethods.map(m => m || '').join('|'),
       weeks: weekCells,
       total: formatCurrency(total),
-      // Sign-off column rendered manually by didDrawCell
-      signoff: sortedWeeks.map(week => w.weeks[week] ? 'box' : 'dash').join('|'),
+      // Sign-off column rendered manually by didDrawCell.
+      // States per week:
+      //   'tick' = already paid (green ticked box)
+      //   'box'  = submitted but not paid (empty box to hand-tick)
+      //   'dash' = no timesheet for that week (dashed placeholder)
+      signoff: sortedWeeks.map(week => {
+        const ts = w.weeks[week];
+        if (!ts) return 'dash';
+        return ts.status === 'paid' ? 'tick' : 'box';
+      }).join('|'),
     };
   });
 
@@ -235,7 +243,7 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
   // ============================================================
   doc.autoTable({
     startY: y,
-    head: [['Worker', 'Site', 'Method', weekHeader, 'Total', 'Sign-off']],
+    head: [['Worker', 'Site', 'Method', weekHeader, 'Total', 'Status']],
     body: body.map(r => [r.worker, r.site, r.method, r.weeks, r.total, r.signoff]),
     theme: 'plain',
     margin: { left: margin, right: margin },
@@ -250,23 +258,34 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
     },
     bodyStyles: {
       fontSize: 8,
-      cellPadding: 2,
+      cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
       lineColor: [240, 240, 240],
       lineWidth: { bottom: 0.2 },
       textColor: [34, 34, 34],
     },
     columnStyles: {
-      0: { cellWidth: 36 },                // Worker
-      1: { cellWidth: 32 },                // Site
-      2: { cellWidth: 22, halign: 'center' }, // Method (room for one or two pills)
-      3: { cellWidth: 36, halign: 'center' }, // Weeks (£X / £Y)
-      4: { cellWidth: 24, halign: 'right', fontStyle: 'bold' }, // Total
-      5: { cellWidth: 'auto', halign: 'center' }, // Sign-off
+      0: { cellWidth: 34 },                // Worker
+      1: { cellWidth: 30 },                // Site
+      2: { cellWidth: 20, halign: 'center' }, // Method
+      3: { cellWidth: 34, halign: 'center' }, // Weeks (£X / £Y)
+      4: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }, // Total
+      5: { cellWidth: 'auto', halign: 'center' }, // Status / Sign-off
     },
     didParseCell: (data) => {
       // Method + Sign-off: clear the rendered text so didDrawCell can paint
       if (data.section === 'body' && (data.column.index === 2 || data.column.index === 5)) {
         data.cell.text = [''];
+      }
+      // Tint row green when all weeks in the row are paid (no 'box' states left)
+      if (data.section === 'body' && data.row?.raw && Array.isArray(data.row.raw)) {
+        const signoffEncoded = String(data.row.raw[5] || '');
+        const tokens = signoffEncoded.split('|').filter(t => t !== '');
+        // Row is fully paid if at least one 'tick' exists and no 'box' exists
+        const hasTick = tokens.includes('tick');
+        const hasBox = tokens.includes('box');
+        if (hasTick && !hasBox) {
+          data.cell.styles.fillColor = [232, 245, 232];
+        }
       }
     },
     didDrawCell: (data) => {
@@ -317,34 +336,56 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
       }
 
       // ============================================================
-      // Sign-off column — render hand-tickable boxes
+      // Status column — paid pills (green w/ "PAID") or empty box per week
       // ============================================================
       if (data.column.index === 5) {
         const encoded = data.row.raw[5] || '';
         const types = String(encoded).split('|').filter(t => t !== '');
         if (types.length === 0) return;
 
+        // Sizes: PAID pill bigger to be unmissable. Hand-tick box just as before.
+        const PILL_W = 11;
+        const PILL_H = 5;
+        const BOX_SIZE = 4;
+        const GAP = 2;
+
+        // Width of each item depends on its type
+        const itemWidths = types.map(t => t === 'tick' ? PILL_W : BOX_SIZE);
+        const totalWidth = itemWidths.reduce((a, b) => a + b, 0) + (types.length - 1) * GAP;
+
         const cx = data.cell.x + data.cell.width / 2;
         const cy = data.cell.y + data.cell.height / 2;
-        const boxSize = 3.5;
-        const gap = 1.5;
-        const totalWidth = types.length * boxSize + (types.length - 1) * gap;
         let bx = cx - totalWidth / 2;
 
-        types.forEach(t => {
-          if (t === 'box') {
-            doc.setDrawColor(60, 60, 60);
+        types.forEach((t, idx) => {
+          if (t === 'tick') {
+            // Green pill with white "PAID" text — unambiguous
+            doc.setFillColor(45, 99, 41);
+            doc.setDrawColor(45, 99, 41);
             doc.setLineWidth(0.3);
             doc.setLineDashPattern([], 0);
-            doc.rect(bx, cy - boxSize / 2, boxSize, boxSize);
+            doc.roundedRect(bx, cy - PILL_H / 2, PILL_W, PILL_H, 1, 1, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.5);
+            doc.text('PAID', bx + PILL_W / 2, cy + 1.2, { align: 'center' });
+            bx += PILL_W + GAP;
+          } else if (t === 'box') {
+            // Empty box centred vertically in the row (slightly bigger than before)
+            doc.setDrawColor(60, 60, 60);
+            doc.setLineWidth(0.35);
+            doc.setLineDashPattern([], 0);
+            doc.rect(bx, cy - BOX_SIZE / 2, BOX_SIZE, BOX_SIZE);
+            bx += BOX_SIZE + GAP;
           } else {
+            // Dashed placeholder — no timesheet that week
             doc.setDrawColor(180, 180, 180);
             doc.setLineWidth(0.3);
             doc.setLineDashPattern([0.5, 0.5], 0);
-            doc.rect(bx, cy - boxSize / 2, boxSize, boxSize);
+            doc.rect(bx, cy - BOX_SIZE / 2, BOX_SIZE, BOX_SIZE);
             doc.setLineDashPattern([], 0);
+            bx += BOX_SIZE + GAP;
           }
-          bx += boxSize + gap;
         });
       }
     },
@@ -421,7 +462,7 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
   yEnd += BLANK_HEADER_HEIGHT;
 
   // Same column widths as the data table
-  const COL_WIDTHS = [36, 32, 22, 36, 24];   // Worker / Site / Method / Weeks / Total
+  const COL_WIDTHS = [34, 30, 20, 34, 22];   // Worker / Site / Method / Weeks / Total
   const TABLE_WIDTH = pageWidth - margin * 2;
   const SIGNOFF_WIDTH = TABLE_WIDTH - COL_WIDTHS.reduce((a, b) => a + b, 0);
 
@@ -448,13 +489,13 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
     // Sign-off boxes on the right (one per week, same as data rows)
     const signoffX = margin + COL_WIDTHS.reduce((a, b) => a + b, 0);
     const cy = yEnd + BLANK_ROW_HEIGHT / 2;
-    const boxSize = 3.5;
-    const boxGap = 1.5;
+    const boxSize = 4;
+    const boxGap = 2;
     const boxesTotal = sortedWeeks.length * boxSize + (sortedWeeks.length - 1) * boxGap;
     let bx = signoffX + (SIGNOFF_WIDTH - boxesTotal) / 2;
     for (let k = 0; k < sortedWeeks.length; k++) {
       doc.setDrawColor(60, 60, 60);
-      doc.setLineWidth(0.3);
+      doc.setLineWidth(0.35);
       doc.rect(bx, cy - boxSize / 2, boxSize, boxSize);
       bx += boxSize + boxGap;
     }
@@ -472,7 +513,7 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.text(
-      'Tick boxes by hand when paid. Solid box = week submitted, dashed = no timesheet that week.',
+      'Green PAID pill = already paid · Empty box = to be paid (tick by hand) · Dashed = no timesheet that week · Green row = fully paid worker',
       margin, pageHeight - 8
     );
     doc.text(`Page ${p} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
