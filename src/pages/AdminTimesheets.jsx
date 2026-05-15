@@ -495,18 +495,28 @@ export default function AdminTimesheets() {
                           </div>
                         </td>
                         <td onClick={e => e.stopPropagation()}>
-                          <PaidStatusPill
-                            paid={allPaid}
-                            queried={anyQueried && !allPaid}
-                            disabled={!canMarkPaid(profile)}
-                            onClick={() => {
-                              if (allPaid) {
-                                group.timesheets.forEach(ts => handleStatusChange(ts.id, 'submitted'));
-                              } else {
-                                group.timesheets.filter(ts => ts.status !== 'paid').forEach(ts => handleStatusChange(ts.id, 'paid'));
-                              }
-                            }}
-                          />
+                          <div className="week-pills">
+                            {group.weekEndings.map(we => {
+                              const ts = group.timesheets.find(t => t.week_ending === we);
+                              if (!ts) return (
+                                <div key={we} className="week-pills__item">
+                                  <span className="week-pills__date">{formatDateCompact(we)}</span>
+                                  <span className="week-pills__missing">—</span>
+                                </div>
+                              );
+                              return (
+                                <div key={we} className="week-pills__item">
+                                  <span className="week-pills__date">{formatDateCompact(we)}</span>
+                                  <PaidStatusPill
+                                    paid={ts.status === 'paid'}
+                                    queried={ts.status === 'queried'}
+                                    disabled={!canMarkPaid(profile)}
+                                    onClick={() => handleStatusChange(ts.id, ts.status === 'paid' ? 'submitted' : 'paid')}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
                         </td>
                         <td>
                           <div className="action-btns" onClick={e => e.stopPropagation()}>
@@ -689,19 +699,27 @@ export default function AdminTimesheets() {
                           </div>
                         )}
                       </div>
-                      <div onClick={e => e.stopPropagation()}>
-                        <PaidStatusPill
-                          paid={allPaid}
-                          queried={anyQueried && !allPaid}
-                          disabled={!canMarkPaid(profile)}
-                          onClick={() => {
-                            if (allPaid) {
-                              group.timesheets.forEach(ts => handleStatusChange(ts.id, 'submitted'));
-                            } else {
-                              group.timesheets.filter(ts => ts.status !== 'paid').forEach(ts => handleStatusChange(ts.id, 'paid'));
-                            }
-                          }}
-                        />
+                      <div className="week-pills week-pills--mobile" onClick={e => e.stopPropagation()}>
+                        {group.weekEndings.map(we => {
+                          const ts = group.timesheets.find(t => t.week_ending === we);
+                          if (!ts) return (
+                            <div key={we} className="week-pills__item">
+                              <span className="week-pills__date">{formatDateCompact(we)}</span>
+                              <span className="week-pills__missing">—</span>
+                            </div>
+                          );
+                          return (
+                            <div key={we} className="week-pills__item">
+                              <span className="week-pills__date">{formatDateCompact(we)}</span>
+                              <PaidStatusPill
+                                paid={ts.status === 'paid'}
+                                queried={ts.status === 'queried'}
+                                disabled={!canMarkPaid(profile)}
+                                onClick={() => handleStatusChange(ts.id, ts.status === 'paid' ? 'submitted' : 'paid')}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
