@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { STATUS_COLORS, PAYMENT_COLORS, STATUS_LABELS, PAYMENT_LABELS } from '../lib/utils';
 
 export function StatusPill({ status, paymentMethod }) {
@@ -24,24 +25,106 @@ export function StatusPill({ status, paymentMethod }) {
 }
 
 /**
- * Clickable status pill — toggles between Outstanding (amber) and Paid (green).
- * Used in the All Timesheets row. If `queried` is true, shows a red Queried pill instead.
+ * Clickable status pill — Outstanding / Paid (via Bank or Other) / Queried.
+ *
+ * When Outstanding, clicking opens an inline method picker:
+ *   [Pay via Bank]  [Pay via Other]
+ * Admin picks how the payment was actually made (overriding the worker's request).
+ *
+ * When Paid, the pill shows the recorded `paymentMethod`:
+ *   - card → green "✓ Paid"
+ *   - other → purple "✓ Paid"
+ *
+ * Clicking a paid pill undoes it back to Outstanding (status → 'submitted').
+ *
+ * Props:
+ *   paid, queried        — current status flags
+ *   paymentMethod        — 'card' | 'other' (controls paid colour)
+ *   onPay(method)        — called with chosen method ('card' or 'other') when admin pays
+ *   onUndo()             — called when admin clicks a Paid pill to unpay
+ *   disabled             — greys out the pill if user can't act
  */
-export function PaidStatusPill({ paid, queried, onClick, disabled }) {
-  const tone = queried ? 'queried' : (paid ? 'paid' : 'outstanding');
-  const label = queried ? 'Queried' : (paid ? 'Paid' : 'Outstanding');
-  const icon = paid ? '\u2713' : (queried ? '!' : '\u23F3');
+export function PaidStatusPill({ paid, queried, paymentMethod, onPay, onUndo, disabled }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [pickerOpen]);
+
+  // Queried: show a static red pill
+  if (queried) {
+    return (
+      <span className="paid-status-pill paid-status-pill--queried" aria-disabled>
+        <span className="paid-status-pill__icon" aria-hidden="true">!</span>
+        Queried
+      </span>
+    );
+  }
+
+  // Paid: show the coloured Paid pill (green for bank, purple for other)
+  if (paid) {
+    const tone = paymentMethod === 'other' ? 'paid-other' : 'paid-bank';
+    return (
+      <button
+        type="button"
+        className={`paid-status-pill paid-status-pill--${tone}`}
+        onClick={() => { if (!disabled) onUndo?.(); }}
+        disabled={disabled}
+        aria-label="Mark as outstanding (undo paid)"
+        title="Click to undo"
+      >
+        <span className="paid-status-pill__icon" aria-hidden="true">{'\u2713'}</span>
+        Paid
+      </button>
+    );
+  }
+
+  // Outstanding: show the amber pill, with optional inline picker
   return (
-    <button
-      type="button"
-      className={`paid-status-pill paid-status-pill--${tone}`}
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={paid ? 'Mark as outstanding' : 'Mark as paid'}
-    >
-      <span className="paid-status-pill__icon" aria-hidden="true">{icon}</span>
-      {label}
-    </button>
+    <span ref={wrapRef} className="paid-status-pill-wrap">
+      {!pickerOpen ? (
+        <button
+          type="button"
+          className="paid-status-pill paid-status-pill--outstanding"
+          onClick={() => { if (!disabled) setPickerOpen(true); }}
+          disabled={disabled}
+          aria-label="Mark as paid"
+        >
+          <span className="paid-status-pill__icon" aria-hidden="true">{'\u23F3'}</span>
+          Outstanding
+        </button>
+      ) : (
+        <span className="paid-status-pill-picker">
+          <button
+            type="button"
+            className="paid-status-pill paid-status-pill--paid-bank paid-status-pill--picker-option"
+            onClick={() => { setPickerOpen(false); onPay?.('card'); }}
+            aria-label="Pay via Bank Transfer"
+          >
+            <span className="paid-status-pill__icon" aria-hidden="true">{'\u2713'}</span>
+            Bank
+          </button>
+          <button
+            type="button"
+            className="paid-status-pill paid-status-pill--paid-other paid-status-pill--picker-option"
+            onClick={() => { setPickerOpen(false); onPay?.('other'); }}
+            aria-label="Pay via Other"
+          >
+            <span className="paid-status-pill__icon" aria-hidden="true">{'\u2713'}</span>
+            Other
+          </button>
+        </span>
+      )}
+    </span>
   );
 }
 
