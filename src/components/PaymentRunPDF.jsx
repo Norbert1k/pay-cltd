@@ -222,13 +222,15 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
       total: formatCurrency(total),
       // Sign-off column rendered manually by didDrawCell.
       // States per week:
-      //   'tick' = already paid (green ticked box)
-      //   'box'  = submitted but not paid (empty box to hand-tick)
-      //   'dash' = no timesheet for that week (dashed placeholder)
+      //   'tick-bank'  = paid via Bank Transfer (green PAID pill)
+      //   'tick-other' = paid via Other          (purple PAID pill)
+      //   'box'        = submitted but not paid (empty box to hand-tick)
+      //   'dash'       = no timesheet for that week (dashed placeholder)
       signoff: sortedWeeks.map(week => {
         const ts = w.weeks[week];
         if (!ts) return 'dash';
-        return ts.status === 'paid' ? 'tick' : 'box';
+        if (ts.status !== 'paid') return 'box';
+        return ts.payment_method === 'other' ? 'tick-other' : 'tick-bank';
       }).join('|'),
     };
   });
@@ -280,8 +282,8 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
       if (data.section === 'body' && data.row?.raw && Array.isArray(data.row.raw)) {
         const signoffEncoded = String(data.row.raw[5] || '');
         const tokens = signoffEncoded.split('|').filter(t => t !== '');
-        // Row is fully paid if at least one 'tick' exists and no 'box' exists
-        const hasTick = tokens.includes('tick');
+        // Row is fully paid if any tick variant exists and no 'box' exists
+        const hasTick = tokens.some(t => t === 'tick-bank' || t === 'tick-other');
         const hasBox = tokens.includes('box');
         if (hasTick && !hasBox) {
           data.cell.styles.fillColor = [232, 245, 232];
@@ -349,19 +351,25 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
         const BOX_SIZE = 4;
         const GAP = 2;
 
+        // Helper: is this token a "paid" pill (either method)?
+        const isTick = (t) => t === 'tick-bank' || t === 'tick-other';
+
         // Width of each item depends on its type
-        const itemWidths = types.map(t => t === 'tick' ? PILL_W : BOX_SIZE);
+        const itemWidths = types.map(t => isTick(t) ? PILL_W : BOX_SIZE);
         const totalWidth = itemWidths.reduce((a, b) => a + b, 0) + (types.length - 1) * GAP;
 
         const cx = data.cell.x + data.cell.width / 2;
         const cy = data.cell.y + data.cell.height / 2;
         let bx = cx - totalWidth / 2;
 
-        types.forEach((t, idx) => {
-          if (t === 'tick') {
-            // Green pill with white "PAID" text — unambiguous
-            doc.setFillColor(45, 99, 41);
-            doc.setDrawColor(45, 99, 41);
+        types.forEach((t) => {
+          if (isTick(t)) {
+            // Coloured PAID pill — green for Bank, purple for Other.
+            // Colours match the in-app PaidStatusPill and PaymentPill palette.
+            const isBank = t === 'tick-bank';
+            const fillRgb = isBank ? [45, 99, 41]   : [83, 74, 183];
+            doc.setFillColor(...fillRgb);
+            doc.setDrawColor(...fillRgb);
             doc.setLineWidth(0.3);
             doc.setLineDashPattern([], 0);
             doc.roundedRect(bx, cy - PILL_H / 2, PILL_W, PILL_H, 1, 1, 'F');
@@ -513,7 +521,7 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.text(
-      'Green PAID pill = already paid · Empty box = to be paid (tick by hand) · Dashed = no timesheet that week · Green row = fully paid worker',
+      'Green PAID = paid via Bank Transfer · Purple PAID = paid via Other · Empty box = to be paid (tick by hand) · Dashed = no timesheet that week',
       margin, pageHeight - 8
     );
     doc.text(`Page ${p} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
