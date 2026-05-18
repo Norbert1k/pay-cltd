@@ -4562,15 +4562,30 @@ a {
 }
 
 /* Paid — green */
-.paid-status-pill--paid {
+/* Paid — Bank Transfer (green) */
+.paid-status-pill--paid,
+.paid-status-pill--paid-bank {
   background: rgba(68, 138, 64, 0.18);
   color: #2d6329;
   border-color: rgba(68, 138, 64, 0.55);
 }
-[data-theme="dark"] .paid-status-pill--paid {
+[data-theme="dark"] .paid-status-pill--paid,
+[data-theme="dark"] .paid-status-pill--paid-bank {
   background: rgba(151, 196, 89, 0.18);
   color: #97C459;
   border-color: rgba(151, 196, 89, 0.55);
+}
+
+/* Paid — Other (purple, matches the PaymentPill "Other" colour) */
+.paid-status-pill--paid-other {
+  background: rgba(83, 74, 183, 0.18);
+  color: #3a3380;
+  border-color: rgba(83, 74, 183, 0.55);
+}
+[data-theme="dark"] .paid-status-pill--paid-other {
+  background: rgba(160, 148, 230, 0.18);
+  color: #a791f4;
+  border-color: rgba(160, 148, 230, 0.55);
 }
 
 /* Queried — red */
@@ -4583,6 +4598,25 @@ a {
   background: rgba(240, 149, 149, 0.15);
   color: #F09595;
   border-color: rgba(240, 149, 149, 0.50);
+}
+
+/* Method-picker wrap — two pills inline when admin clicks Outstanding */
+.paid-status-pill-wrap {
+  display: inline-flex;
+}
+.paid-status-pill-picker {
+  display: inline-flex;
+  gap: 4px;
+  animation: paid-pill-picker-in 0.12s ease-out;
+}
+.paid-status-pill--picker-option {
+  /* Picker options are slightly smaller so two fit side-by-side without ballooning the row */
+  padding: 4px 10px;
+  font-size: 0.72rem;
+}
+@keyframes paid-pill-picker-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 /* Total cell with optional per-week breakdown */
