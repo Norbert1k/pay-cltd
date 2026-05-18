@@ -7,6 +7,78 @@ import { PageHeader, PaidStatusPill, PaymentPill, LoadingSpinner, EmptyState, St
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 import { generatePaymentRunPDF } from '../components/PaymentRunPDF';
 
+/**
+ * Day-by-day breakdown table inside an expanded timesheet card.
+ * - If the timesheet has CIS applied (`cisRate > 0`): renders 7 columns
+ *   (Day, Start, End, Type, Gross, CIS, Net) with per-day CIS deduction
+ *   and a totals footer row. Net per day = Gross - CIS.
+ * - Otherwise: renders 6 columns (no CIS column, no totals footer).
+ */
+function DayBreakdownTable({ days, cisRate, DL }) {
+  const showCis = cisRate > 0;
+  const rate = cisRate || 0;
+
+  // Compute totals only when CIS is shown (and only over days that have a gross amount)
+  let totalGross = 0, totalCis = 0, totalNet = 0;
+  if (showCis) {
+    days.forEach(d => {
+      const g = Number(d.gross_amount) || 0;
+      const c = g * rate / 100;
+      totalGross += g;
+      totalCis += c;
+      totalNet += g - c;
+    });
+  }
+
+  return (
+    <table className="mini-table">
+      <thead>
+        <tr>
+          <th>Day</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Type</th>
+          <th style={{textAlign: 'right'}}>Gross</th>
+          {showCis && <th style={{textAlign: 'right', color: '#BA7517'}}>CIS {rate}%</th>}
+          <th style={{textAlign: 'right'}}>Net</th>
+        </tr>
+      </thead>
+      <tbody>
+        {days.map(d => {
+          const gross = Number(d.gross_amount) || 0;
+          const cisAmt = showCis ? gross * rate / 100 : 0;
+          const net = showCis ? gross - cisAmt : (Number(d.net_amount) || gross);
+          return (
+            <tr key={d.id}>
+              <td>{DL[d.day_of_week]}</td>
+              <td>{d.start_time || '-'}</td>
+              <td>{d.end_time || '-'}</td>
+              <td>{d.work_type || '-'}</td>
+              <td style={{textAlign: 'right'}}>{formatCurrency(gross)}</td>
+              {showCis && (
+                <td style={{textAlign: 'right', color: '#BA7517'}}>
+                  {gross > 0 ? `−${formatCurrency(cisAmt)}` : formatCurrency(0)}
+                </td>
+              )}
+              <td style={{textAlign: 'right', fontWeight: showCis ? 600 : 400}}>{formatCurrency(net)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+      {showCis && (
+        <tfoot>
+          <tr className="mini-table__totals">
+            <td colSpan={4} style={{textAlign: 'right', color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.5px'}}>Totals</td>
+            <td style={{textAlign: 'right'}}>{formatCurrency(totalGross)}</td>
+            <td style={{textAlign: 'right', color: '#BA7517'}}>−{formatCurrency(totalCis)}</td>
+            <td style={{textAlign: 'right', fontWeight: 700}}>{formatCurrency(totalNet)}</td>
+          </tr>
+        </tfoot>
+      )}
+    </table>
+  );
+}
+
 export default function AdminTimesheets() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -594,25 +666,23 @@ export default function AdminTimesheets() {
                                   </div>
 
                                   {expandedDays[ts.id] && expandedDays[ts.id].length > 0 && (
-                                    <table className="mini-table">
-                                      <thead><tr><th>Day</th><th>Start</th><th>End</th><th>Type</th><th>Gross</th><th>Ded.</th><th>Net</th></tr></thead>
-                                      <tbody>
-                                        {expandedDays[ts.id].map(d => (
-                                          <tr key={d.id}>
-                                            <td>{DL[d.day_of_week]}</td><td>{d.start_time || '-'}</td><td>{d.end_time || '-'}</td>
-                                            <td>{d.work_type || '-'}</td><td>{formatCurrency(d.gross_amount)}</td><td>{formatCurrency(d.deductions)}</td><td>{formatCurrency(d.net_amount)}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
+                                    <DayBreakdownTable
+                                      days={expandedDays[ts.id]}
+                                      cisRate={ts.cis_rate}
+                                      DL={DL}
+                                    />
                                   )}
 
-                                  {ts.cis_rate > 0 && (
-                                    <div className="cis-summary">
-                                      <span>CIS {ts.cis_rate}% applied</span>
-                                      <span>Net: <strong>{formatCurrency(ts.total_amount)}</strong></span>
-                                    </div>
-                                  )}
+                                  {ts.cis_rate > 0 && (() => {
+                                    const totalGross = (expandedDays[ts.id] || []).reduce((s, d) => s + (Number(d.gross_amount) || 0), 0);
+                                    const totalCis = totalGross * ts.cis_rate / 100;
+                                    return (
+                                      <div className="cis-summary">
+                                        <span>CIS {ts.cis_rate}% applied — {formatCurrency(totalCis)} deducted from {formatCurrency(totalGross)} gross</span>
+                                        <span>Take-home: <strong>{formatCurrency(ts.total_amount)}</strong></span>
+                                      </div>
+                                    );
+                                  })()}
 
                                   <div className="ts-detail-card__actions">
                                     {canMarkPaid(profile) && (
@@ -777,26 +847,24 @@ export default function AdminTimesheets() {
 
                           {expandedDays[ts.id] && expandedDays[ts.id].length > 0 && (
                             <div style={{overflowX: 'auto'}}>
-                              <table className="mini-table">
-                                <thead><tr><th>Day</th><th>Start</th><th>End</th><th>Type</th><th>Gross</th><th>Ded.</th><th>Net</th></tr></thead>
-                                <tbody>
-                                  {expandedDays[ts.id].map(d => (
-                                    <tr key={d.id}>
-                                      <td>{DL[d.day_of_week]}</td><td>{d.start_time || '-'}</td><td>{d.end_time || '-'}</td>
-                                      <td>{d.work_type || '-'}</td><td>{formatCurrency(d.gross_amount)}</td><td>{formatCurrency(d.deductions)}</td><td>{formatCurrency(d.net_amount)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                              <DayBreakdownTable
+                                days={expandedDays[ts.id]}
+                                cisRate={ts.cis_rate}
+                                DL={DL}
+                              />
                             </div>
                           )}
 
-                          {ts.cis_rate > 0 && (
-                            <div className="cis-summary">
-                              <span>CIS {ts.cis_rate}% applied</span>
-                              <span>Net: <strong>{formatCurrency(ts.total_amount)}</strong></span>
-                            </div>
-                          )}
+                          {ts.cis_rate > 0 && (() => {
+                            const totalGross = (expandedDays[ts.id] || []).reduce((s, d) => s + (Number(d.gross_amount) || 0), 0);
+                            const totalCis = totalGross * ts.cis_rate / 100;
+                            return (
+                              <div className="cis-summary">
+                                <span>CIS {ts.cis_rate}% applied — {formatCurrency(totalCis)} deducted from {formatCurrency(totalGross)} gross</span>
+                                <span>Take-home: <strong>{formatCurrency(ts.total_amount)}</strong></span>
+                              </div>
+                            );
+                          })()}
 
                           <div className="ts-detail-card__actions">
                             {canMarkPaid(profile) && (
