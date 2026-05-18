@@ -4689,3 +4689,9 @@ a {
     justify-content: flex-end;
   }
 }
+
+/* Mini-table totals row — heavier top border to separate from data rows */
+.mini-table__totals td {
+  border-top: 1.5px solid var(--border-color) !important;
+  padding-top: 6px !important;
+}
