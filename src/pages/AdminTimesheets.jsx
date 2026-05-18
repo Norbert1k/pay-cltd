@@ -159,6 +159,39 @@ export default function AdminTimesheets() {
     window.dispatchEvent(new Event('badges-refresh'));
   };
 
+  /**
+   * Mark a timesheet as paid AND override the payment_method to reflect how
+   * it was actually paid (Bank Transfer or Other). The worker's original
+   * requested method may differ — admin's choice here overwrites it.
+   */
+  const handleMarkPaidWithMethod = async (tsId, actualMethod) => {
+    const ts = timesheets.find(t => t.id === tsId);
+    if (!ts) return;
+    if (!['card', 'other'].includes(actualMethod)) return;
+
+    const updates = {
+      status: 'paid',
+      payment_method: actualMethod,
+      admin_notes: null,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: profile.id,
+    };
+
+    await supabase.from('timesheets').update(updates).eq('id', tsId);
+
+    await supabase.from('alerts').insert({
+      worker_id: ts.worker_id,
+      timesheet_id: tsId,
+      type: 'status_change',
+      title: 'Payment Processed',
+      message: `Payment of ${formatCurrency(ts.total_amount)} for WE ${formatDate(ts.week_ending)} has been processed via ${actualMethod === 'card' ? 'Bank Transfer' : 'Other'}.`,
+      created_by: profile.id,
+    });
+
+    fetchTimesheets();
+    window.dispatchEvent(new Event('badges-refresh'));
+  };
+
   const handleAdminEdit = (ts, workerName) => {
     navigate('/submit', { state: { adminEditId: ts.id, workerName } });
   };
@@ -510,8 +543,10 @@ export default function AdminTimesheets() {
                                   <PaidStatusPill
                                     paid={ts.status === 'paid'}
                                     queried={ts.status === 'queried'}
+                                    paymentMethod={ts.payment_method}
                                     disabled={!canMarkPaid(profile)}
-                                    onClick={() => handleStatusChange(ts.id, ts.status === 'paid' ? 'submitted' : 'paid')}
+                                    onPay={(method) => handleMarkPaidWithMethod(ts.id, method)}
+                                    onUndo={() => handleStatusChange(ts.id, 'submitted')}
                                   />
                                 </div>
                               );
@@ -714,8 +749,10 @@ export default function AdminTimesheets() {
                               <PaidStatusPill
                                 paid={ts.status === 'paid'}
                                 queried={ts.status === 'queried'}
+                                paymentMethod={ts.payment_method}
                                 disabled={!canMarkPaid(profile)}
-                                onClick={() => handleStatusChange(ts.id, ts.status === 'paid' ? 'submitted' : 'paid')}
+                                onPay={(method) => handleMarkPaidWithMethod(ts.id, method)}
+                                onUndo={() => handleStatusChange(ts.id, 'submitted')}
                               />
                             </div>
                           );
