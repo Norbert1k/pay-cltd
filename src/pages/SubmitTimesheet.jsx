@@ -472,21 +472,22 @@ export default function SubmitTimesheet() {
           <h3 className="form-section__title">CIS Deduction</h3>
           {(() => {
             const hasCisDetails = profile?.national_insurance && profile?.utr_number;
-            const cisAllowed = hasCisDetails && profile?.cis_verified;
+            const cisAllowed = isAdminEditMode || (hasCisDetails && profile?.cis_verified);
             const verifiedRate = profile?.cis_rate ?? 20;
 
-            // Auto-disable CIS if no longer allowed (e.g. admin revoked verification)
-            if (cisEnabled && !cisAllowed) {
+            // Auto-disable CIS if no longer allowed (e.g. admin revoked verification).
+            // Skip this for admin-edit mode — the admin is in control.
+            if (cisEnabled && !cisAllowed && !isAdminEditMode) {
               setCisEnabled(false);
             }
-            // Keep the rate in sync with the verified rate
-            if (cisAllowed && cisRate !== verifiedRate) {
+            // Keep the rate in sync with the verified rate (worker submissions only)
+            if (cisAllowed && !isAdminEditMode && cisRate !== verifiedRate) {
               setCisRate(verifiedRate);
             }
 
             return (
               <>
-                {!cisAllowed && (
+                {!cisAllowed && !isAdminEditMode && (
                   <div className="alert alert--warning" style={{marginBottom: 12}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -514,8 +515,18 @@ export default function SubmitTimesheet() {
                 </label>
                 {cisEnabled && cisAllowed && (
                   <div className="form-group" style={{marginTop: 10}}>
-                    <label className="form-label">CIS Rate <span className="text-muted text-sm">(verified by Accounts)</span></label>
-                    <select value={cisRate} className="form-input" disabled>
+                    <label className="form-label">
+                      CIS Rate{' '}
+                      {isAdminEditMode
+                        ? <span className="text-muted text-sm">(admin override)</span>
+                        : <span className="text-muted text-sm">(verified by Accounts)</span>}
+                    </label>
+                    <select
+                      value={cisRate}
+                      className="form-input"
+                      onChange={(e) => isAdminEditMode && setCisRate(Number(e.target.value))}
+                      disabled={!isAdminEditMode}
+                    >
                       <option value={20}>20% (Standard rate)</option>
                       <option value={30}>30% (Higher rate)</option>
                       <option value={0}>0% (Gross payment)</option>
@@ -555,16 +566,17 @@ export default function SubmitTimesheet() {
           {(() => {
             const hasPaymentDetails = profile?.national_insurance && profile?.utr_number && profile?.sort_code && profile?.account_number && profile?.account_name;
             const isVerified = profile?.payment_details_verified;
-            const bankTransferAllowed = hasPaymentDetails && isVerified;
+            const bankTransferAllowed = isAdminEditMode || (hasPaymentDetails && isVerified);
 
-            // Auto-switch to 'other' if user previously selected card but no longer allowed
-            if (paymentMethod === 'card' && !bankTransferAllowed) {
+            // Auto-switch to 'other' if user previously selected card but no longer allowed.
+            // Skip for admin-edit mode — the admin is in control.
+            if (paymentMethod === 'card' && !bankTransferAllowed && !isAdminEditMode) {
               setPaymentMethod('other');
             }
 
             return (
               <>
-                {!bankTransferAllowed && (
+                {!bankTransferAllowed && !isAdminEditMode && (
                   <div className="alert alert--warning" style={{marginBottom: 12}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -599,7 +611,7 @@ export default function SubmitTimesheet() {
                       </div>
                       <div>
                         <strong>Pay by Bank Transfer</strong>
-                        <p>{bankTransferAllowed ? 'Using verified payment details' : 'Not available yet'}</p>
+                        <p>{isAdminEditMode ? 'Admin override' : (bankTransferAllowed ? 'Using verified payment details' : 'Not available yet')}</p>
                       </div>
                     </div>
                   </label>
