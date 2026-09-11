@@ -220,12 +220,8 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
         : weekMethods.map(m => m || '').join('|'),
       weeks: weekCells,
       total: formatCurrency(total),
-      // Sign-off column rendered manually by didDrawCell.
-      // States per week:
-      //   'tick-bank'  = paid via Bank Transfer (green PAID pill)
-      //   'tick-other' = paid via Other          (purple PAID pill)
-      //   'box'        = submitted but not paid (empty box to hand-tick)
-      //   'dash'       = no timesheet for that week (dashed placeholder)
+      // Sign-off column rendered manually by didDrawCell
+      // 'tick-bank' paid via Bank | 'tick-other' paid via Other | 'box' unpaid | 'dash' no timesheet
       signoff: sortedWeeks.map(week => {
         const ts = w.weeks[week];
         if (!ts) return 'dash';
@@ -271,125 +267,69 @@ export function generatePaymentRunPDF(timesheets, weekEndings, payment, generate
       2: { cellWidth: 20, halign: 'center' }, // Method
       3: { cellWidth: 34, halign: 'center' }, // Weeks (£X / £Y)
       4: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }, // Total
-      5: { cellWidth: 'auto', halign: 'center' }, // Status / Sign-off
+      5: { cellWidth: 'auto', halign: 'center' }, // Sign-off
     },
     didParseCell: (data) => {
-      // Method + Sign-off: clear the rendered text so didDrawCell can paint
       if (data.section === 'body' && (data.column.index === 2 || data.column.index === 5)) {
         data.cell.text = [''];
       }
-      // Tint row green when all weeks in the row are paid (no 'box' states left)
+      // Tint row green when every week in the row is paid
       if (data.section === 'body' && data.row?.raw && Array.isArray(data.row.raw)) {
-        const signoffEncoded = String(data.row.raw[5] || '');
-        const tokens = signoffEncoded.split('|').filter(t => t !== '');
-        // Row is fully paid if any tick variant exists and no 'box' exists
+        const tokens = String(data.row.raw[5] || '').split('|').filter(t => t !== '');
         const hasTick = tokens.some(t => t === 'tick-bank' || t === 'tick-other');
-        const hasBox = tokens.includes('box');
-        if (hasTick && !hasBox) {
-          data.cell.styles.fillColor = [232, 245, 232];
-        }
+        if (hasTick && !tokens.includes('box')) data.cell.styles.fillColor = [232, 245, 232];
       }
     },
     didDrawCell: (data) => {
       if (data.section !== 'body') return;
       if (!data.row?.raw || !Array.isArray(data.row.raw)) return;
 
-      // ============================================================
-      // Method column — render one or two coloured pills inline
-      // ============================================================
+      // Method column — one or two coloured pills
       if (data.column.index === 2) {
-        const encoded = data.row.raw[2] || '';
-        const tokens = String(encoded).split('|').filter(t => t !== '');
-        // Single pill if only one method, two pills (separated by /) if mixed
-        const items = tokens.length <= 1
-          ? [{ method: tokens[0] || 'other' }]
-          : tokens.map(t => ({ method: t }));
-
-        const PILL_W = 9;
-        const PILL_H = 3.6;
-        const SLASH_W = 2.2;
+        const tokens = String(data.row.raw[2] || '').split('|').filter(t => t !== '');
+        const items = tokens.length <= 1 ? [tokens[0] || 'other'] : tokens;
+        const PILL_W = 9, PILL_H = 3.6, SLASH_W = 2.2;
         const totalW = items.length * PILL_W + (items.length - 1) * SLASH_W;
-        const startX = data.cell.x + (data.cell.width - totalW) / 2;
+        let bx = data.cell.x + (data.cell.width - totalW) / 2;
         const cy = data.cell.y + data.cell.height / 2;
-
-        let bx = startX;
-        items.forEach((item, idx) => {
-          const isCard = item.method === 'card';
-          const fill = isCard ? [68, 138, 64] : [83, 74, 183];
-          const label = isCard ? 'Bank' : 'Other';
-
-          doc.setFillColor(...fill);
+        items.forEach((m, idx) => {
+          const isCard = m === 'card';
+          doc.setFillColor(...(isCard ? [68, 138, 64] : [83, 74, 183]));
           doc.roundedRect(bx, cy - PILL_H / 2, PILL_W, PILL_H, 0.8, 0.8, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(6.2);
-          doc.text(label, bx + PILL_W / 2, cy + 1.1, { align: 'center' });
-
+          doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.2);
+          doc.text(isCard ? 'Bank' : 'Other', bx + PILL_W / 2, cy + 1.1, { align: 'center' });
           bx += PILL_W;
-
           if (idx < items.length - 1) {
-            doc.setTextColor(140, 140, 140);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
+            doc.setTextColor(140, 140, 140); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
             doc.text('/', bx + SLASH_W / 2, cy + 1.1, { align: 'center' });
             bx += SLASH_W;
           }
         });
       }
 
-      // ============================================================
-      // Status column — paid pills (green w/ "PAID") or empty box per week
-      // ============================================================
+      // Status column — PAID pill (green bank / purple other), empty box, or dashed box
       if (data.column.index === 5) {
-        const encoded = data.row.raw[5] || '';
-        const types = String(encoded).split('|').filter(t => t !== '');
+        const types = String(data.row.raw[5] || '').split('|').filter(t => t !== '');
         if (types.length === 0) return;
-
-        // Sizes: PAID pill bigger to be unmissable. Hand-tick box just as before.
-        const PILL_W = 11;
-        const PILL_H = 5;
-        const BOX_SIZE = 4;
-        const GAP = 2;
-
-        // Helper: is this token a "paid" pill (either method)?
+        const PILL_W = 11, PILL_H = 5, BOX_SIZE = 4, GAP = 2;
         const isTick = (t) => t === 'tick-bank' || t === 'tick-other';
-
-        // Width of each item depends on its type
-        const itemWidths = types.map(t => isTick(t) ? PILL_W : BOX_SIZE);
-        const totalWidth = itemWidths.reduce((a, b) => a + b, 0) + (types.length - 1) * GAP;
-
-        const cx = data.cell.x + data.cell.width / 2;
+        const totalWidth = types.reduce((a, t) => a + (isTick(t) ? PILL_W : BOX_SIZE), 0) + (types.length - 1) * GAP;
+        let bx = data.cell.x + data.cell.width / 2 - totalWidth / 2;
         const cy = data.cell.y + data.cell.height / 2;
-        let bx = cx - totalWidth / 2;
-
         types.forEach((t) => {
           if (isTick(t)) {
-            // Coloured PAID pill — green for Bank, purple for Other.
-            // Colours match the in-app PaidStatusPill and PaymentPill palette.
-            const isBank = t === 'tick-bank';
-            const fillRgb = isBank ? [45, 99, 41]   : [83, 74, 183];
-            doc.setFillColor(...fillRgb);
-            doc.setDrawColor(...fillRgb);
-            doc.setLineWidth(0.3);
-            doc.setLineDashPattern([], 0);
+            const rgb = t === 'tick-bank' ? [45, 99, 41] : [83, 74, 183];
+            doc.setFillColor(...rgb); doc.setDrawColor(...rgb); doc.setLineWidth(0.3); doc.setLineDashPattern([], 0);
             doc.roundedRect(bx, cy - PILL_H / 2, PILL_W, PILL_H, 1, 1, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(6.5);
+            doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
             doc.text('PAID', bx + PILL_W / 2, cy + 1.2, { align: 'center' });
             bx += PILL_W + GAP;
           } else if (t === 'box') {
-            // Empty box centred vertically in the row (slightly bigger than before)
-            doc.setDrawColor(60, 60, 60);
-            doc.setLineWidth(0.35);
-            doc.setLineDashPattern([], 0);
+            doc.setDrawColor(60, 60, 60); doc.setLineWidth(0.35); doc.setLineDashPattern([], 0);
             doc.rect(bx, cy - BOX_SIZE / 2, BOX_SIZE, BOX_SIZE);
             bx += BOX_SIZE + GAP;
           } else {
-            // Dashed placeholder — no timesheet that week
-            doc.setDrawColor(180, 180, 180);
-            doc.setLineWidth(0.3);
-            doc.setLineDashPattern([0.5, 0.5], 0);
+            doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.3); doc.setLineDashPattern([0.5, 0.5], 0);
             doc.rect(bx, cy - BOX_SIZE / 2, BOX_SIZE, BOX_SIZE);
             doc.setLineDashPattern([], 0);
             bx += BOX_SIZE + GAP;

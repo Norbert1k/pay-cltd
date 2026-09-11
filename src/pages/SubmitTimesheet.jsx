@@ -475,12 +475,11 @@ export default function SubmitTimesheet() {
             const cisAllowed = isAdminEditMode || (hasCisDetails && profile?.cis_verified);
             const verifiedRate = profile?.cis_rate ?? 20;
 
-            // Auto-disable CIS if no longer allowed (e.g. admin revoked verification).
-            // Skip this for admin-edit mode — the admin is in control.
+            // Auto-disable CIS if no longer allowed (e.g. admin revoked verification)
             if (cisEnabled && !cisAllowed && !isAdminEditMode) {
               setCisEnabled(false);
             }
-            // Keep the rate in sync with the verified rate (worker submissions only)
+            // Keep the rate in sync with the verified rate
             if (cisAllowed && !isAdminEditMode && cisRate !== verifiedRate) {
               setCisRate(verifiedRate);
             }
@@ -515,18 +514,8 @@ export default function SubmitTimesheet() {
                 </label>
                 {cisEnabled && cisAllowed && (
                   <div className="form-group" style={{marginTop: 10}}>
-                    <label className="form-label">
-                      CIS Rate{' '}
-                      {isAdminEditMode
-                        ? <span className="text-muted text-sm">(admin override)</span>
-                        : <span className="text-muted text-sm">(verified by Accounts)</span>}
-                    </label>
-                    <select
-                      value={cisRate}
-                      className="form-input"
-                      onChange={(e) => isAdminEditMode && setCisRate(Number(e.target.value))}
-                      disabled={!isAdminEditMode}
-                    >
+                    <label className="form-label">CIS Rate <span className="text-muted text-sm">{isAdminEditMode ? '(admin override)' : '(verified by Accounts)'}</span></label>
+                    <select value={cisRate} className="form-input" onChange={(e) => isAdminEditMode && setCisRate(Number(e.target.value))} disabled={!isAdminEditMode}>
                       <option value={20}>20% (Standard rate)</option>
                       <option value={30}>30% (Higher rate)</option>
                       <option value={0}>0% (Gross payment)</option>
@@ -568,8 +557,7 @@ export default function SubmitTimesheet() {
             const isVerified = profile?.payment_details_verified;
             const bankTransferAllowed = isAdminEditMode || (hasPaymentDetails && isVerified);
 
-            // Auto-switch to 'other' if user previously selected card but no longer allowed.
-            // Skip for admin-edit mode — the admin is in control.
+            // Auto-switch to 'other' if user previously selected card but no longer allowed
             if (paymentMethod === 'card' && !bankTransferAllowed && !isAdminEditMode) {
               setPaymentMethod('other');
             }

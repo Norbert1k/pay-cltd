@@ -16,6 +16,7 @@ import AdminWorkers from './pages/AdminWorkers';
 import AdminWorkerDetail from './pages/AdminWorkerDetail';
 import AdminSites from './pages/AdminSites';
 import AdminPaymentDates from './pages/AdminPaymentDates';
+import AdminReports from './pages/AdminReports';
 
 function ProtectedRoute({ passwordRecovery, setPasswordRecovery }) {
   const { user, profile, loading, signOut } = useAuth();
@@ -137,6 +138,7 @@ export default function App() {
               <Route path="/admin/workers/:id" element={<AdminWorkerDetail />} />
               <Route path="/admin/sites" element={<AdminSites />} />
               <Route path="/admin/payments" element={<AdminPaymentDates />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
             </Route>
           </Route>
 

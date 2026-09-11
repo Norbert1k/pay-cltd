@@ -8,36 +8,19 @@ import { generateTimesheetPDF } from '../components/TimesheetPDF';
 import { generatePaymentRunPDF } from '../components/PaymentRunPDF';
 
 /**
- * Day-by-day breakdown table inside an expanded timesheet card.
- * - If the timesheet has CIS applied (`cisRate > 0`): renders 7 columns
- *   (Day, Start, End, Type, Gross, CIS, Net) with per-day CIS deduction
- *   and a totals footer row. Net per day = Gross - CIS.
- * - Otherwise: renders 6 columns (no CIS column, no totals footer).
+ * Day-by-day breakdown. With CIS: 7 cols incl. amber CIS column + totals footer.
+ * Without CIS: 6 cols. Per-day CIS is computed live from gross × rate.
  */
 function DayBreakdownTable({ days, cisRate, DL }) {
   const showCis = cisRate > 0;
   const rate = cisRate || 0;
-
-  // Compute totals only when CIS is shown (and only over days that have a gross amount)
   let totalGross = 0, totalCis = 0, totalNet = 0;
-  if (showCis) {
-    days.forEach(d => {
-      const g = Number(d.gross_amount) || 0;
-      const c = g * rate / 100;
-      totalGross += g;
-      totalCis += c;
-      totalNet += g - c;
-    });
-  }
-
+  if (showCis) days.forEach(d => { const g = Number(d.gross_amount) || 0; const c = g * rate / 100; totalGross += g; totalCis += c; totalNet += g - c; });
   return (
     <table className="mini-table">
       <thead>
         <tr>
-          <th>Day</th>
-          <th>Start</th>
-          <th>End</th>
-          <th>Type</th>
+          <th>Day</th><th>Start</th><th>End</th><th>Type</th>
           <th style={{textAlign: 'right'}}>Gross</th>
           {showCis && <th style={{textAlign: 'right', color: '#BA7517'}}>CIS {rate}%</th>}
           <th style={{textAlign: 'right'}}>Net</th>
@@ -50,16 +33,9 @@ function DayBreakdownTable({ days, cisRate, DL }) {
           const net = showCis ? gross - cisAmt : (Number(d.net_amount) || gross);
           return (
             <tr key={d.id}>
-              <td>{DL[d.day_of_week]}</td>
-              <td>{d.start_time || '-'}</td>
-              <td>{d.end_time || '-'}</td>
-              <td>{d.work_type || '-'}</td>
+              <td>{DL[d.day_of_week]}</td><td>{d.start_time || '-'}</td><td>{d.end_time || '-'}</td><td>{d.work_type || '-'}</td>
               <td style={{textAlign: 'right'}}>{formatCurrency(gross)}</td>
-              {showCis && (
-                <td style={{textAlign: 'right', color: '#BA7517'}}>
-                  {gross > 0 ? `−${formatCurrency(cisAmt)}` : formatCurrency(0)}
-                </td>
-              )}
+              {showCis && <td style={{textAlign: 'right', color: '#BA7517'}}>{gross > 0 ? `−${formatCurrency(cisAmt)}` : formatCurrency(0)}</td>}
               <td style={{textAlign: 'right', fontWeight: showCis ? 600 : 400}}>{formatCurrency(net)}</td>
             </tr>
           );
@@ -231,35 +207,21 @@ export default function AdminTimesheets() {
     window.dispatchEvent(new Event('badges-refresh'));
   };
 
-  /**
-   * Mark a timesheet as paid AND override the payment_method to reflect how
-   * it was actually paid (Bank Transfer or Other). The worker's original
-   * requested method may differ — admin's choice here overwrites it.
-   */
+  // Mark paid AND overwrite payment_method with how it was actually paid.
   const handleMarkPaidWithMethod = async (tsId, actualMethod) => {
     const ts = timesheets.find(t => t.id === tsId);
     if (!ts) return;
     if (!['card', 'other'].includes(actualMethod)) return;
-
-    const updates = {
-      status: 'paid',
-      payment_method: actualMethod,
-      admin_notes: null,
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: profile.id,
-    };
-
-    await supabase.from('timesheets').update(updates).eq('id', tsId);
-
+    await supabase.from('timesheets').update({
+      status: 'paid', payment_method: actualMethod, admin_notes: null,
+      reviewed_at: new Date().toISOString(), reviewed_by: profile.id,
+    }).eq('id', tsId);
     await supabase.from('alerts').insert({
-      worker_id: ts.worker_id,
-      timesheet_id: tsId,
-      type: 'status_change',
+      worker_id: ts.worker_id, timesheet_id: tsId, type: 'status_change',
       title: 'Payment Processed',
       message: `Payment of ${formatCurrency(ts.total_amount)} for WE ${formatDate(ts.week_ending)} has been processed via ${actualMethod === 'card' ? 'Bank Transfer' : 'Other'}.`,
       created_by: profile.id,
     });
-
     fetchTimesheets();
     window.dispatchEvent(new Event('badges-refresh'));
   };
@@ -674,7 +636,7 @@ export default function AdminTimesheets() {
                                   )}
 
                                   {ts.cis_rate > 0 && (() => {
-                                    const totalGross = (expandedDays[ts.id] || []).reduce((s, d) => s + (Number(d.gross_amount) || 0), 0);
+                                    const totalGross = (expandedDays[ts.id] || []).reduce((a, d) => a + (Number(d.gross_amount) || 0), 0);
                                     const totalCis = totalGross * ts.cis_rate / 100;
                                     return (
                                       <div className="cis-summary">
@@ -856,7 +818,7 @@ export default function AdminTimesheets() {
                           )}
 
                           {ts.cis_rate > 0 && (() => {
-                            const totalGross = (expandedDays[ts.id] || []).reduce((s, d) => s + (Number(d.gross_amount) || 0), 0);
+                            const totalGross = (expandedDays[ts.id] || []).reduce((a, d) => a + (Number(d.gross_amount) || 0), 0);
                             const totalCis = totalGross * ts.cis_rate / 100;
                             return (
                               <div className="cis-summary">

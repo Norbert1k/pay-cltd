@@ -57,6 +57,12 @@ const IconSites = () => (
   </svg>
 );
 
+const IconReports = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+  </svg>
+);
+
 const IconLogout = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" />
@@ -128,6 +134,7 @@ export default function Sidebar({ open, onClose }) {
   const adminLinks = [
     { to: '/admin', label: 'Dashboard', icon: <IconDashboard /> },
     { to: '/admin/timesheets', label: 'All Timesheets', icon: <IconTimesheets /> },
+    { to: '/admin/reports', label: 'Job Costs', icon: <IconReports /> },
     { to: '/admin/workers', label: 'User Management', icon: <IconWorkers />, badge: badges.pendingUsers },
     { to: '/admin/sites', label: 'Sites', icon: <IconSites /> },
     { to: '/admin/payments', label: 'Payment Dates', icon: <IconCalendar /> },
