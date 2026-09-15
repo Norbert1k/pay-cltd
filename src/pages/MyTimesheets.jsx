@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { formatDate, formatCurrency, STATUSES, STATUS_LABELS } from '../lib/utils';
+import { formatDate, formatCurrency, STATUSES, STATUS_LABELS, isCutoffPassed } from '../lib/utils';
 import { PageHeader, StatusPill, PaymentPill, LoadingSpinner, EmptyState } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 
@@ -62,8 +62,7 @@ export default function MyTimesheets() {
     if (ts.status === 'queried') return true;
     const pd = getPaymentDateForTimesheet(ts);
     if (!pd) return true;
-    const cutoff = new Date(pd.cutoff_date + 'T23:59:59');
-    return new Date() <= cutoff;
+    return !isCutoffPassed(pd.cutoff_date);
   };
 
   const handleDownloadPDF = async (ts) => {

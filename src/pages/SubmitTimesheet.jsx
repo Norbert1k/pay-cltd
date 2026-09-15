@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { getNextSunday, DAYS, formatCurrency, formatDate } from '../lib/utils';
+import { getNextSunday, DAYS, formatCurrency, formatDate, isCutoffPassed, toLocalISO } from '../lib/utils';
 import { PageHeader, LoadingSpinner } from '../components/ui';
 import WeekPicker from '../components/WeekPicker';
 import DayRow from '../components/DayRow';
@@ -115,8 +115,7 @@ export default function SubmitTimesheet() {
         .limit(1);
 
       if (payDates && payDates[0]) {
-        const cutoff = new Date(payDates[0].cutoff_date + 'T23:59:59');
-        setCutoffPassed(new Date() > cutoff);
+        setCutoffPassed(isCutoffPassed(payDates[0].cutoff_date));
       } else {
         setCutoffPassed(false);
       }
@@ -194,9 +193,8 @@ export default function SubmitTimesheet() {
     // Workers can only submit for weeks up to and including next week
     const thisSunday = getNextSunday();
     const maxAllowed = (() => {
-      const d = new Date(thisSunday + 'T00:00:00Z');
-      d.setUTCDate(d.getUTCDate() + 7);
-      return d.toISOString().split('T')[0];
+      const [y, m, d] = thisSunday.split('-').map(Number);
+      return toLocalISO(new Date(y, m - 1, d + 7));
     })();
     if (weekEnding > maxAllowed) {
       return 'You can only submit for weeks up to next week. Please select an earlier week.';

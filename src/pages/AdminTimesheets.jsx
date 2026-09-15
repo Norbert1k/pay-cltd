@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { formatDate, formatDateCompact, formatCurrency, STATUSES, STATUS_LABELS, groupTimesheetsByWorker, canMarkPaid } from '../lib/utils';
+import { formatDate, formatDateCompact, formatCurrency, STATUSES, STATUS_LABELS, groupTimesheetsByWorker, canMarkPaid, daysUntil } from '../lib/utils';
 import { PageHeader, PaidStatusPill, PaymentPill, LoadingSpinner, EmptyState, StatusPill } from '../components/ui';
 import { generateTimesheetPDF } from '../components/TimesheetPDF';
 import { generatePaymentRunPDF } from '../components/PaymentRunPDF';
@@ -381,7 +381,7 @@ export default function AdminTimesheets() {
             </div>
             <div className="period-selector__cutoff">
               Submit by: {formatDate(currentPayment?.cutoff_date)} &mdash; {(() => {
-                const days = Math.ceil((new Date(currentPayment?.cutoff_date + 'T00:00:00') - new Date()) / 86400000);
+                const days = daysUntil(currentPayment?.cutoff_date);
                 if (days < 0) return <span className="text-red">Cutoff passed</span>;
                 if (days === 0) return <span className="text-red">Today!</span>;
                 if (days === 1) return <span style={{color: '#BA7517'}}>Tomorrow</span>;

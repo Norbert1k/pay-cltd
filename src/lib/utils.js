@@ -1,10 +1,38 @@
 // Get the next Sunday (week ending date)
+// Format a Date as YYYY-MM-DD using LOCAL calendar components.
+// (toISOString() converts to UTC and can shift the date by a day during BST.)
+export function toLocalISO(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Today's date as YYYY-MM-DD (local).
+export function todayLocal() {
+  return toLocalISO(new Date());
+}
+
+// Cutoff is passed only once today is strictly AFTER the cutoff date.
+// On the cutoff day itself submissions are still allowed (all day).
+export function isCutoffPassed(cutoffDate) {
+  if (!cutoffDate) return false;
+  return todayLocal() > cutoffDate;
+}
+
+// Whole calendar days from today until dateStr (0 = today, negative = past).
+export function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const target = Date.UTC(y, m - 1, d);
+  const n = new Date();
+  const today = Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
+  return Math.round((target - today) / 86400000);
+}
+
 export function getNextSunday(from = new Date()) {
   const d = new Date(from);
   const day = d.getDay();
   const diff = day === 0 ? 0 : 7 - day;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().split('T')[0];
+  return toLocalISO(d);
 }
 
 // Format date as "12 Apr 2026"

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { formatDate, formatDateCompact, formatCurrency } from '../lib/utils';
+import { formatDate, formatDateCompact, formatCurrency, todayLocal } from '../lib/utils';
 import { PageHeader, LoadingSpinner, EmptyState } from '../components/ui';
 import { generateJobCostsPDF } from '../components/JobCostsPDF';
 
@@ -23,8 +23,7 @@ function toISO(d) {
 }
 
 function todayISO() {
-  const n = new Date();
-  return toISO(new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())));
+  return todayLocal();
 }
 
 const PRESETS = [

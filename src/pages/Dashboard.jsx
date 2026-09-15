@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { getNextSunday, formatDate, formatCurrency } from '../lib/utils';
+import { getNextSunday, formatDate, formatCurrency, daysUntil, todayLocal } from '../lib/utils';
 import { PageHeader, StatusPill, PaymentPill, LoadingSpinner } from '../components/ui';
 
 export default function Dashboard() {
@@ -37,7 +37,7 @@ export default function Dashboard() {
         .order('payment_date', { ascending: true });
       setPaymentDates(payDates || []);
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayLocal();
       const upcoming = (payDates || []).filter(d => d.payment_date >= today);
       setNextPayment(upcoming[0] || null);
 
@@ -116,9 +116,7 @@ export default function Dashboard() {
   if (loading) return <LoadingSpinner />;
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
-  const daysUntilCutoff = nextPayment?.cutoff_date
-    ? Math.ceil((new Date(nextPayment.cutoff_date + 'T00:00:00') - new Date()) / (1000 * 60 * 60 * 24))
-    : null;
+  const daysUntilCutoff = nextPayment?.cutoff_date ? daysUntil(nextPayment.cutoff_date) : null;
 
   const monthDiff = stats.thisMonthTotal - stats.lastMonthTotal;
   const monthPercent = stats.lastMonthTotal > 0 ? Math.round((monthDiff / stats.lastMonthTotal) * 100) : 0;
