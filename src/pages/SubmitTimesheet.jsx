@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -51,8 +51,17 @@ export default function SubmitTimesheet() {
   const isAdminEditMode = !!adminEditId && ['admin', 'accountant', 'director'].includes(profile?.role);
 
   useEffect(() => { fetchSites(); fetchPaymentDates(); }, []);
+  // In admin-edit mode the timesheet is loaded ONCE by id; changing the week
+  // afterwards just re-targets which week it will be saved against (a "move").
+  const adminLoadedRef = useRef(false);
   useEffect(() => {
-    if (profile) checkExisting();
+    if (!profile) return;
+    if (isAdminEditMode) {
+      if (adminLoadedRef.current) return;
+      adminLoadedRef.current = true;
+    }
+    checkExisting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekEnding, profile]);
 
   // Auto-enter edit mode if navigated here from "Edit" button (worker or admin)
@@ -281,6 +290,21 @@ export default function SubmitTimesheet() {
           await supabase.from('timesheet_days').delete().in('id', ids);
         }
 
+        // Admin may move the timesheet to a different week — block if the worker
+        // already has one for the target week.
+        if (isAdminEditMode && weekEnding !== existingTimesheet.week_ending) {
+          const { data: clash } = await supabase
+            .from('timesheets')
+            .select('id')
+            .eq('worker_id', existingTimesheet.worker_id)
+            .eq('week_ending', weekEnding)
+            .neq('id', timesheetId)
+            .maybeSingle();
+          if (clash) {
+            throw new Error(`This worker already has a timesheet for week ending ${formatDate(weekEnding)}. Delete or edit that one instead.`);
+          }
+        }
+
         // Step 2: Update the timesheet record
         const updatePayload = {
           site_id: siteId,
@@ -291,6 +315,7 @@ export default function SubmitTimesheet() {
           edited: true,
           updated_at: new Date().toISOString(),
         };
+        if (isAdminEditMode) updatePayload.week_ending = weekEnding;
         // Worker edits reset the approval pipeline; admin edits preserve it.
         if (!isAdminEditMode) {
           updatePayload.status = 'submitted';
@@ -430,6 +455,16 @@ export default function SubmitTimesheet() {
 
       <form onSubmit={handleFormSubmit} onKeyDown={handleKeyDown} className="timesheet-form">
         {error && <div className="auth-error">{error}</div>}
+        {isAdminEditMode && existingTimesheet && weekEnding !== existingTimesheet.week_ending && (
+          <div className="alert alert--warning" style={{marginBottom: 12}}>
+            <div>
+              <strong>Moving timesheet</strong>
+              <p style={{fontSize: '0.85rem'}}>
+                This timesheet was submitted for week ending {formatDate(existingTimesheet.week_ending)}. Saving will move it to week ending {formatDate(weekEnding)}.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="form-section">
           <h3 className="form-section__title">Week &amp; Site</h3>
